@@ -25,35 +25,6 @@ blackList = ['jpeg', 'jpg', 'png', 'gif']
 async def on_ready():
     print(f'Logged in as {client.user}')
 
-    # Envia mensagem privada
-
-    """"
-	gex = client.get_user(205352729315377153)
-	await gex.send("gex gay\nMe diz se funcionou kkk")
-	lima = client.get_user(209430765044236288)
-	await lima.send("o queeeee\nMe diz se funcionou kkk")
-	matheus = client.get_user(553192451758882817)
-	await matheus.send("o queeeee\nMe diz se funcionou kkk")
-
-	antonio = client.get_user(306172735732580353)
-	await antonio.send("O queeee")
-	await antonio.send("Mama antoniooo!")
-	await antonio.send("kkkkkk")
-	await antonio.send("PS: me diz se funcionou kkk")
-	"""
-
-    # A cada 5s marca o gex e manda um gex gay em todos os canais
-    """
-	while True:
-		canais = guilda.text_channels
-		# print(canais)
-		for canal in canais:
-			# print(canal.name)
-			await canal.send("<@205352729315377153> gex gay")
-
-		await asyncio.sleep(180)
-	"""
-
 
 @client.listen()
 async def on_message(message):
@@ -72,11 +43,6 @@ async def on_message(message):
     if message.author == client.get_user('184405311681986560'):
         await message.channel.send('Bot lixo!')
 
-    # Manda o Maestrelli mamar em todas as mensagens q ele mandar
-    """
-    if message.author == client.get_user(249942644501774338):
-        await message.channel.send("Mama boiostrelli!")
-    """
 
     # Quando um usuario envia uma mensagem no chat, há uma chance de o bot mandar ele mamar
     rng = random.random()
@@ -161,7 +127,7 @@ async def get_gold(ctx, qtd_gold:int=None):
         
     if status:
         await ctx.channel.send(str(gold) + ' Gold')
-    else:
+    else: 
         await ctx.channel.send(descricao)
 
 @client.command(name="set_gold")
