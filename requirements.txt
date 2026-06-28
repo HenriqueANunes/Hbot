@@ -1,0 +1,5 @@
+discord.py
+opencv-python
+pil-compat
+bs4
+aiocron

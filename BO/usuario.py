@@ -1,4 +1,25 @@
-from replit import db
+import json
+import os
+from pathlib import Path
+
+
+DB_PATH = Path(os.getenv('HBOT_DB_PATH', 'hbot_db.json'))
+
+
+def carregar_db():
+    if not DB_PATH.exists():
+        return {}
+
+    with DB_PATH.open('r', encoding='utf-8') as arquivo:
+        return json.load(arquivo)
+
+
+def salvar_db(db):
+    with DB_PATH.open('w', encoding='utf-8') as arquivo:
+        json.dump(db, arquivo, ensure_ascii=False, indent=2)
+
+
+db = carregar_db()
 
 class Usuario():
 
@@ -24,11 +45,17 @@ class Usuario():
                     'pp': 0,
                 },
             }
-        
+
         self.db_user = db[self.cd_servidor][self.cd_user]
+        self.db_user.setdefault('rpg', {})
+        self.db_user['rpg'].setdefault('gold', 0)
+        self.db_user['rpg'].setdefault('pp', 0)
+        
+        salvar_db(db)
 
     def add_mamada(self):
         self.db_user['qtd_mamadas'] += 1
+        salvar_db(db)
 
     def get_mamadas(self):
         return self.db_user['qtd_mamadas']
@@ -63,6 +90,7 @@ class Usuario():
                 return False, 'É necessário dizer a quantidade de gold'
                 
             self.db_user['rpg']['gold'] = qtd_gold
+            salvar_db(db)
             return True, 'Feito!'
         except:
             return False, 'Erro ao setar o gold'
@@ -70,6 +98,7 @@ class Usuario():
     def add_gold(self, qtd_gold: int=None):
         try:
             self.db_user['rpg']['gold'] += qtd_gold
+            salvar_db(db)
             return True, '', self.db_user['rpg']['gold']
         except:
             return False, 'Erro ao adicionar valor', None
@@ -86,6 +115,7 @@ class Usuario():
                 return False, 'É necessário dizer a quantidade de pp'
                 
             self.db_user['rpg']['pp'] = qtd_pp
+            salvar_db(db)
             return True, 'Feito!'
         except:
             return False, 'Erro ao settar pp'
@@ -93,6 +123,7 @@ class Usuario():
     def add_pp(self, qtd_pp: int=None):
         try:
             self.db_user['rpg']['pp'] += qtd_pp
+            salvar_db(db)
             return True, '', self.db_user['rpg']['pp']
         except:
             return False, 'Erro ao settar pp', None

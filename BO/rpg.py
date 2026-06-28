@@ -6,7 +6,7 @@ class Rpg():
     
     # ([1-\100]*d[0-\100]+)\s?\+?\s?([1-\100]*d[1-\100]+)?
     def get_dados(self, regex=None):
-        regex = re.search("(?P<dado1>[\d]*d[\d]+)\ ?(?P<operador>\+?\-?\*?\/?)\ ?(?P<dado2>[\d]*d[\d]+)?", regex)
+        regex = re.search(r"(?P<dado1>[\d]*d[\d]+)\ ?(?P<operador>\+?\-?\*?\/?)\ ?(?P<dado2>[\d]*d[\d]+)?", regex)
         
         response = ''
         if regex:

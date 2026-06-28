@@ -1,5 +1,4 @@
 from discord.ext import commands
-from keep_alive import keep_alive
 
 import discord
 import os
@@ -174,9 +173,4 @@ async def set_pp(ctx, qtd_pp:int=None):
 #     await hman.send("Grêmio volta a perder para o Palmeiras e está eliminado do Brasileirão Feminino.")
 
 
-keep_alive()
-try:
-    client.run(os.getenv('TOKEN'))
-except:
-    os.system('kill 1')
-    client.run(os.getenv('TOKEN'))
+client.run(os.getenv('TOKEN'))
