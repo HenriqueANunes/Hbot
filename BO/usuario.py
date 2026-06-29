@@ -1,25 +1,33 @@
-import json
 import os
 from pathlib import Path
 
+from tinydb import Query, TinyDB
 
 DB_PATH = Path(os.getenv('HBOT_DB_PATH', 'hbot_db.json'))
+USER_TABLE_NAME = 'usuarios'
+"""
+Estrutura do banco (TinyDB):
+
+- Arquivo: `hbot_db.json` (ou valor de `HBOT_DB_PATH`)
+- Tabela: `usuarios`
+- Cada documento da tabela:
+  {
+    "cd_servidor": "<id do servidor Discord em string>",
+    "cd_user": "<id do usuário Discord em string>",
+    "nome": "<nome do usuário>",
+    "qtd_mamadas": <int>,
+    "rpg": {
+      "gold": <int>,
+      "pp": <int>
+    }
+  }
+"""
 
 
-def carregar_db():
-    if not DB_PATH.exists():
-        return {}
+db = TinyDB(DB_PATH, ensure_ascii=False, indent=2)
+usuarios_table = db.table(USER_TABLE_NAME)
+usuario_query = Query()
 
-    with DB_PATH.open('r', encoding='utf-8') as arquivo:
-        return json.load(arquivo)
-
-
-def salvar_db(db):
-    with DB_PATH.open('w', encoding='utf-8') as arquivo:
-        json.dump(db, arquivo, ensure_ascii=False, indent=2)
-
-
-db = carregar_db()
 
 class Usuario():
 
@@ -28,41 +36,53 @@ class Usuario():
         self.cd_user = str(user.id)
         self.cd_servidor = str(cd_servidor)
         self.db_user = None
+        self.doc_id = None
 
         self.carregar()
 
+    def _buscar_usuario_doc(self):
+        return usuarios_table.get(
+            (usuario_query.cd_servidor == self.cd_servidor)
+            & (usuario_query.cd_user == self.cd_user)
+        )
+
+    def _salvar_usuario(self):
+        usuarios_table.update(self.db_user, doc_ids=[self.doc_id])
+
     def carregar(self):
-
-        if self.cd_servidor not in db.keys():
-            db[self.cd_servidor] = {}
-
-        if self.cd_user not in db[self.cd_servidor].keys():
-            db[self.cd_servidor][self.cd_user] = {
+        doc = self._buscar_usuario_doc()
+        if not doc:
+            self.doc_id = usuarios_table.insert({
+                'cd_servidor': self.cd_servidor,
+                'cd_user': self.cd_user,
                 'nome': self.user.name,
                 'qtd_mamadas': 0,
-                'rpg':{
+                'rpg': {
                     'gold': 0,
                     'pp': 0,
                 },
-            }
+            })
+            doc = usuarios_table.get(doc_id=self.doc_id)
 
-        self.db_user = db[self.cd_servidor][self.cd_user]
+        self.doc_id = doc.doc_id
+        self.db_user = dict(doc)
         self.db_user.setdefault('rpg', {})
         self.db_user['rpg'].setdefault('gold', 0)
         self.db_user['rpg'].setdefault('pp', 0)
         
-        salvar_db(db)
+        self._salvar_usuario()
 
     def add_mamada(self):
         self.db_user['qtd_mamadas'] += 1
-        salvar_db(db)
+        self._salvar_usuario()
 
     def get_mamadas(self):
         return self.db_user['qtd_mamadas']
 
     def get_rank_mamadas(self):
         rank = []
-        for _, user in db[self.cd_servidor].items():
+        users = usuarios_table.search(usuario_query.cd_servidor == self.cd_servidor)
+        for user in users:
             rank.append(dict(user))
         rank.sort(reverse=True, key=lambda user: user['qtd_mamadas'])
         
@@ -90,7 +110,7 @@ class Usuario():
                 return False, 'É necessário dizer a quantidade de gold'
                 
             self.db_user['rpg']['gold'] = qtd_gold
-            salvar_db(db)
+            self._salvar_usuario()
             return True, 'Feito!'
         except:
             return False, 'Erro ao setar o gold'
@@ -98,7 +118,7 @@ class Usuario():
     def add_gold(self, qtd_gold: int=None):
         try:
             self.db_user['rpg']['gold'] += qtd_gold
-            salvar_db(db)
+            self._salvar_usuario()
             return True, '', self.db_user['rpg']['gold']
         except:
             return False, 'Erro ao adicionar valor', None
@@ -115,7 +135,7 @@ class Usuario():
                 return False, 'É necessário dizer a quantidade de pp'
                 
             self.db_user['rpg']['pp'] = qtd_pp
-            salvar_db(db)
+            self._salvar_usuario()
             return True, 'Feito!'
         except:
             return False, 'Erro ao settar pp'
@@ -123,7 +143,7 @@ class Usuario():
     def add_pp(self, qtd_pp: int=None):
         try:
             self.db_user['rpg']['pp'] += qtd_pp
-            salvar_db(db)
+            self._salvar_usuario()
             return True, '', self.db_user['rpg']['pp']
         except:
             return False, 'Erro ao settar pp', None
