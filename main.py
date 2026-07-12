@@ -10,6 +10,9 @@ import BO.rpg
 
 # logging.basicConfig(level=logging.INFO)
 
+# Versão do Hbot — aumente a cada alteração no código
+HBOT_VERSION = "1.0.0"
+
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True  # privilegiado: necessário p/ ler message.content e comandos por prefixo
@@ -61,6 +64,7 @@ async def help_command(ctx):
         color=discord.Color.blurple(),
     )
     embed.add_field(name="h.help", value="Mostra esta lista de comandos.", inline=False)
+    embed.add_field(name="h.version", value="Mostra a versão atual do Hbot.", inline=False)
     embed.add_field(name="h.del <n>",
                     value="Apaga as últimas `n` mensagens do canal. Requer permissão de gerenciar mensagens.", inline=False)
     embed.add_field(name="h.fbe <ext> [profundidade=100]",
@@ -76,6 +80,12 @@ async def help_command(ctx):
     embed.add_field(name="🎲 Rolagem de dados",
                     value="Não é comando: escreva algo como `2d6` ou `1d20+1d6` que eu rolo os dados.", inline=False)
     await ctx.channel.send(embed=embed)
+
+
+# Mostra a versão atual do Hbot
+@client.command(name="version")
+async def version_command(ctx):
+    await ctx.channel.send(f"Hbot v{HBOT_VERSION}")
 
 
 # Comando para encontrar todos os arquivos no historico do chat

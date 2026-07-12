@@ -16,6 +16,7 @@ Todos usam o prefixo `h.`. Argumentos entre `<>` são obrigatórios; entre `[]` 
 | Comando | Argumentos | O que faz |
 |---|---|---|
 | `h.help` | — | Lista todos os comandos com uma breve explicação (num embed). |
+| `h.version` | — | Mostra a versão atual do Hbot (string fixa no código, `HBOT_VERSION`). |
 | `h.del` | `<n>` | Apaga as últimas `n` mensagens do canal (mais o próprio comando) e responde 👍. `n` precisa ser positivo. Requer permissão **Gerenciar Mensagens**. |
 | `h.fbe` | `<ext> [profundidade=100]` | Varre o histórico do canal (até `profundidade` mensagens) e posta as URLs dos anexos cujo nome termina em `<ext>`. Ex.: `h.fbe pdf 50`. |
 | `h.mamadas` | — | Mostra quantas "mamadas" **você** acumulou (contador de brincadeira, ver abaixo). |
