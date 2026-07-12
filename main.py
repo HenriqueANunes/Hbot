@@ -16,7 +16,7 @@ intents.message_content = True  # privilegiado: necessário p/ ler message.conte
 
 client = discord.Client(intents=intents)
 
-client = commands.Bot(command_prefix="h.", intents=intents)
+client = commands.Bot(command_prefix="h.", intents=intents, help_command=None)
 
 blackList = ['jpeg', 'jpg', 'png', 'gif']
 
@@ -51,6 +51,32 @@ async def on_message(message):
 
     if response:
         await message.channel.send(response)
+
+# Lista os comandos disponíveis com uma breve explicação
+@client.command(name="help")
+async def help_command(ctx):
+    embed = discord.Embed(
+        title="Comandos do Hbot",
+        description="Prefixo `h.` · `<>` = obrigatório, `[]` = opcional",
+        color=discord.Color.blurple(),
+    )
+    embed.add_field(name="h.help", value="Mostra esta lista de comandos.", inline=False)
+    embed.add_field(name="h.del <n>",
+                    value="Apaga as últimas `n` mensagens do canal. Requer permissão de gerenciar mensagens.", inline=False)
+    embed.add_field(name="h.fbe <ext> [profundidade=100]",
+                    value="Procura no histórico e posta as URLs dos anexos que terminam em `ext`. Ex.: `h.fbe pdf 50`.", inline=False)
+    embed.add_field(name="h.mamadas", value="Mostra quantas mamadas você acumulou.", inline=False)
+    embed.add_field(name="h.rank", value="Ranking de mamadas do servidor.", inline=False)
+    embed.add_field(name="h.gold [qtd]",
+                    value="Sem valor: mostra seu gold. Com valor: soma ao seu gold.", inline=False)
+    embed.add_field(name="h.set_gold <qtd>", value="Define seu gold para o valor informado.", inline=False)
+    embed.add_field(name="h.pp [qtd]",
+                    value="Sem valor: mostra seus PPs. Com valor: soma aos seus PPs.", inline=False)
+    embed.add_field(name="h.set_pp <qtd>", value="Define seus PPs para o valor informado.", inline=False)
+    embed.add_field(name="🎲 Rolagem de dados",
+                    value="Não é comando: escreva algo como `2d6` ou `1d20+1d6` que eu rolo os dados.", inline=False)
+    await ctx.channel.send(embed=embed)
+
 
 # Comando para encontrar todos os arquivos no historico do chat
 # arg1: formato do arquivo a ser procurado
