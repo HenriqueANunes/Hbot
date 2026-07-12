@@ -11,7 +11,7 @@ import BO.rpg
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.0.0"
+HBOT_VERSION = "1.0.1"
 
 intents = discord.Intents.default()
 intents.members = True
