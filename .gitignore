@@ -5,3 +5,4 @@ hbot_db.json
 .venv
 venv/
 .env
+.idea/

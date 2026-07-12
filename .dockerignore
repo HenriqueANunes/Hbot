@@ -8,4 +8,5 @@ __pycache__/
 *.pyc
 .env
 *.md
+tools/
 hbot_db.json

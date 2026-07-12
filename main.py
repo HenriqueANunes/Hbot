@@ -31,11 +31,6 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.author == client.get_user(502671975978631183):
-        mensagem = f'{str(message.author)}: {message.content}'
-        hman = client.get_user(279274104043995136)
-        await hman.send(mensagem)
-
     if 'prune' in message.content.lower():
         await message.channel.send('Não pode usar esse comando lixo!!')
         await message.channel.send('Use h.del')
@@ -158,21 +153,6 @@ async def set_pp(ctx, qtd_pp:int=None):
                                            cd_servidor=ctx.guild.id).set_pp(qtd_pp=qtd_pp)
 
     await ctx.channel.send(descricao)
-
-# @aiocron.crontab('*/10 * * * *')
-# async def cronjob1():
-
-#     canal = client.get_channel(928011484980732026)
-#     await canal.send('Testando cron do Hbot')
-
-# @aiocron.crontab('0 17 * * *')
-# async def conjob2():
-#     maria = client.get_user(502671975978631183)
-#     await maria.send("Grêmio volta a perder para o Palmeiras e está eliminado do Brasileirão Feminino.")
-
-#     hman = client.get_user(279274104043995136)
-#     await hman.send("Grêmio volta a perder para o Palmeiras e está eliminado do Brasileirão Feminino.")
-
 
 BO.usuario.init_db()
 client.run(os.getenv('TOKEN'))
