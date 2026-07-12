@@ -1,0 +1,11 @@
+.git/
+.gitignore
+.idea/
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.env
+*.md
+hbot_db.json

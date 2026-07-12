@@ -1,0 +1,19 @@
+# Stack do Hbot (bot de Discord) para o homelab.
+# O banco NÃO fica aqui: usa o Postgres compartilhado do homelab (stack `postgres`),
+# conectando pela rede Docker externa `postgres`. Ver DEPLOY.md.
+# Convenções: restart unless-stopped, segredos via .env (guardados no Vaultwarden).
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    environment:
+      TOKEN: ${TOKEN:?defina TOKEN no .env}
+      # aponta pro Postgres compartilhado (host = nome do serviço na rede `postgres`)
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env}
+    networks:
+      - postgres
+
+# Rede criada pela stack `postgres` (compartilhada). Precisa existir antes.
+networks:
+  postgres:
+    external: true

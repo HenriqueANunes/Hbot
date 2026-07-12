@@ -12,6 +12,7 @@ import BO.rpg
 
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True  # privilegiado: necessário p/ ler message.content e comandos por prefixo
 
 client = discord.Client(intents=intents)
 
@@ -154,7 +155,7 @@ async def get_pp(ctx, qtd_pp:int=None):
 @client.command(name="set_pp")
 async def set_pp(ctx, qtd_pp:int=None):
     status, descricao = BO.usuario.Usuario(user=ctx.author,
-                                           cd_servidor=ctx.guild.id).set_gold(qtd_pp=qtd_pp)
+                                           cd_servidor=ctx.guild.id).set_pp(qtd_pp=qtd_pp)
 
     await ctx.channel.send(descricao)
 
@@ -173,4 +174,5 @@ async def set_pp(ctx, qtd_pp:int=None):
 #     await hman.send("Grêmio volta a perder para o Palmeiras e está eliminado do Brasileirão Feminino.")
 
 
+BO.usuario.init_db()
 client.run(os.getenv('TOKEN'))

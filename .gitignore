@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 hbot_db.json
 .tool-versions
+.venv
+venv/
+.env

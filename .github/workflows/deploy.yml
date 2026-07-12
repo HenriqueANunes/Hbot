@@ -1,0 +1,23 @@
+name: Deploy Hbot
+
+# Deploy contínuo no servidor do homelab, via GitHub Actions self-hosted runner.
+# A cada push na main (ou disparo manual), o runner atualiza o repo no servidor
+# e sobe o container. Segredos (TOKEN, DATABASE_URL) ficam no .env do servidor,
+# fora do git — o workflow não os toca.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Atualizar código e subir o container
+        run: |
+          set -e
+          cd /home/hman/discord-bot/app
+          git fetch origin main
+          git reset --hard origin/main
+          docker compose up -d --build
+          docker image prune -f
