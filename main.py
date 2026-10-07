@@ -12,7 +12,7 @@ import BO.claude
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.1.0"
+HBOT_VERSION = "1.2.0"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -26,6 +26,20 @@ blackList = ['jpeg', 'jpg', 'png', 'gif']
 
 # Referências às tasks de mamada em andamento (evita que o asyncio as colete antes de terminar)
 tarefas_mamada = set()
+
+# "Sacola" de mamadas por servidor: 10 fichas embaralhadas, só uma premiada.
+# Garante exatamente 1 mamada a cada 10 mensagens, sem sequências longas sem nada.
+TAMANHO_SACOLA = 10
+sacolas_mamada = {}
+
+
+def sortear_mamada(chave):
+    sacola = sacolas_mamada.get(chave)
+    if not sacola:
+        sacola = [True] + [False] * (TAMANHO_SACOLA - 1)
+        random.shuffle(sacola)
+        sacolas_mamada[chave] = sacola
+    return sacola.pop()
 
 
 @client.event
@@ -47,8 +61,9 @@ async def on_message(message):
 
 
     # Quando um usuario envia uma mensagem no chat, há uma chance de o bot mandar ele mamar
-    rng = random.random()
-    if rng <= 0.1:
+    # (1 a cada 10 mensagens, por servidor; em DM, por canal)
+    chave = message.guild.id if message.guild else message.channel.id
+    if sortear_mamada(chave):
         # Em task separada: a geração pelo Claude leva alguns segundos
         tarefa = asyncio.create_task(mandar_mamada(message))
         tarefas_mamada.add(tarefa)
