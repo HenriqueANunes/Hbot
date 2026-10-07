@@ -6,12 +6,13 @@ import asyncio
 import random
 import BO.usuario
 import BO.rpg
+import BO.claude
 # import aiocron
 
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.0.1"
+HBOT_VERSION = "1.1.0"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -22,6 +23,9 @@ client = discord.Client(intents=intents)
 client = commands.Bot(command_prefix="h.", intents=intents, help_command=None)
 
 blackList = ['jpeg', 'jpg', 'png', 'gif']
+
+# Referências às tasks de mamada em andamento (evita que o asyncio as colete antes de terminar)
+tarefas_mamada = set()
 
 
 @client.event
@@ -45,15 +49,25 @@ async def on_message(message):
     # Quando um usuario envia uma mensagem no chat, há uma chance de o bot mandar ele mamar
     rng = random.random()
     if rng <= 0.1:
-        await message.channel.send(
-            f'Da uma mamadinha aqui {message.author.display_name}', tts=True)
-        BO.usuario.Usuario(user=message.author, cd_servidor=message.guild.id).add_mamada()
+        # Em task separada: a geração pelo Claude leva alguns segundos
+        tarefa = asyncio.create_task(mandar_mamada(message))
+        tarefas_mamada.add(tarefa)
+        tarefa.add_done_callback(tarefas_mamada.discard)
 
 
     response = BO.rpg.Rpg().get_dados(regex=message.content.lower())
 
     if response:
         await message.channel.send(response)
+
+# Manda a mamadinha gerada pelo Claude; sem Claude (erro, timeout, sem token), usa a frase fixa
+async def mandar_mamada(message):
+    async with message.channel.typing():
+        texto = await BO.claude.gerar_mamada(message)
+    if not texto:
+        texto = f'Da uma mamadinha aqui {message.author.display_name}'
+    await message.channel.send(texto, tts=True, allowed_mentions=discord.AllowedMentions.none())
+    BO.usuario.Usuario(user=message.author, cd_servidor=message.guild.id).add_mamada()
 
 # Lista os comandos disponíveis com uma breve explicação
 @client.command(name="help")

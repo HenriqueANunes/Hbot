@@ -10,6 +10,8 @@ services:
       TOKEN: ${TOKEN:?defina TOKEN no .env}
       # aponta pro Postgres compartilhado (host = nome do serviço na rede `postgres`)
       DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env}
+      # opcional: sem ele a mamadinha usa a frase fixa (ver BO/claude.py)
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
     networks:
       - postgres
 

@@ -62,6 +62,17 @@ Copie `.env.example` para `.env` e preencha:
 |-----|-------|
 | `TOKEN` | Token do bot (Discord Developer Portal → Bot). Guardar no Vaultwarden. |
 | `DATABASE_URL` | `postgresql://hbot:<senha>@postgres:5432/hbot` — host `postgres` é o nome do serviço na rede compartilhada. |
+| `CLAUDE_CODE_OAUTH_TOKEN` | *Opcional.* Token da assinatura do Claude, para a mamadinha gerada na hora (`BO/claude.py`). Vazio = frase fixa. Guardar no Vaultwarden. |
+
+### Gerar o `CLAUDE_CODE_OAUTH_TOKEN` (uma vez)
+O login é interativo (abre o navegador), então rode em qualquer máquina com o
+Claude Code instalado e logado na sua conta:
+```bash
+claude setup-token
+```
+Copie o token gerado para o `.env` do servidor e para o Vaultwarden, depois
+`docker compose up -d` para o container pegar a variável. A CLI já vem instalada na
+imagem (Dockerfile, instalador nativo, auto-update desligado — atualiza a cada rebuild).
 
 ## Antes de subir — no Discord Developer Portal
 O bot lê o conteúdo das mensagens (comandos por prefixo `h.`), então habilite os

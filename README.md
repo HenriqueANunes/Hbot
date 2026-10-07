@@ -53,6 +53,13 @@ Exemplo de resposta para `2d6`:
 A cada mensagem, há **10% de chance** do bot responder mandando a pessoa mamar
 (com TTS) e incrementar o contador dela — é o que alimenta `h.mamadas` e `h.rank`.
 
+A frase é gerada na hora pelo **Claude Code** (CLI `claude -p`, modelo Haiku), reagindo
+ao que a pessoa mandou (texto, imagens/arquivos pelo tipo e nome, figurinhas, embeds de
+outros bots, e o título da prévia de links — YouTube, Steam etc.; o bot espera 3 s pela prévia) — ver [`BO/claude.py`](BO/claude.py), onde fica o prompt.
+Leva ~3–5 s (o bot mostra "digitando…"). Sem token, com erro ou após 15 s, cai na
+frase fixa `Da uma mamadinha aqui <nome>`. Só uma geração por vez; se já tiver uma
+rodando, usa a frase fixa.
+
 ### Outras reações
 - Mensagem contendo a palavra **`prune`** → o bot reclama e sugere usar `h.del`.
 
@@ -88,7 +95,7 @@ Conexão via variável de ambiente `DATABASE_URL`.
 
 - **Produção (homelab):** container Docker + PostgreSQL compartilhado, deploy contínuo
   via GitHub Actions. Passo a passo completo em [`DEPLOY.md`](DEPLOY.md).
-- **Variáveis de ambiente:** `TOKEN` (token do bot) e `DATABASE_URL`. Ver [`.env.example`](.env.example).
+- **Variáveis de ambiente:** `TOKEN` (token do bot), `DATABASE_URL` e, opcional, `CLAUDE_CODE_OAUTH_TOKEN`. Ver [`.env.example`](.env.example).
 - **Intents privilegiados:** o bot precisa de **MESSAGE CONTENT** e **SERVER MEMBERS**
   ligados no [Discord Developer Portal](https://discord.com/developers/applications) —
   sem o Message Content, ele fica online mas os comandos não respondem.
