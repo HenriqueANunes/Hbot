@@ -1,30 +1,38 @@
-from discord.ext import commands, tasks
+from discord import app_commands
+from discord.ext import tasks
 from datetime import date, timedelta
 import math
 
 import discord
 import os
-import asyncio
 import BO.usuario
 import BO.mamada
 import BO.presenca
 import BO.presenca_mensagens
-# import aiocron
 
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.5.0"
+HBOT_VERSION = "1.6.0"
 
 intents = discord.Intents.default()
 intents.members = True
-intents.message_content = True  # privilegiado: necessário p/ ler message.content e comandos por prefixo
+intents.message_content = True  # privilegiado: a mamada aleatória e o aviso do `prune` leem message.content
 
-client = discord.Client(intents=intents)
 
-client = commands.Bot(command_prefix="h.", intents=intents, help_command=None)
+class Hbot(discord.Client):
+    def __init__(self):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
 
-blackList = ['jpeg', 'jpg', 'png', 'gif']
+    async def setup_hook(self):
+        # Registra os comandos de barra no Discord (globais: valem em todo servidor em que o bot está)
+        comandos = await self.tree.sync()
+        print(f'{len(comandos)} comandos de barra sincronizados')
+
+
+client = Hbot()
+
 
 @client.event
 async def on_ready():
@@ -36,14 +44,14 @@ async def on_ready():
     await recuperar_presenca()
 
 
-@client.listen()
+@client.event
 async def on_message(message):
     if message.author == client.user:
         return
 
     if 'prune' in message.content.lower():
         await message.channel.send('Não pode usar esse comando lixo!!')
-        await message.channel.send('Use h.del')
+        await message.channel.send('Use /del')
 
     if message.author == client.get_user('184405311681986560'):
         await message.channel.send('Bot lixo!')
@@ -53,105 +61,118 @@ async def on_message(message):
     # (1 a cada 10 mensagens, por servidor; em DM, por canal) — ver BO/mamada.py
     BO.mamada.talvez_mandar(message)
 
+
+@client.tree.error
+async def on_app_command_error(interaction, error):
+    print(f'[Hbot] Erro no comando /{interaction.command and interaction.command.name}: {error!r}')
+    texto = 'Deu ruim aqui, tenta de novo.'
+    if interaction.response.is_done():
+        await interaction.followup.send(texto, ephemeral=True)
+    else:
+        await interaction.response.send_message(texto, ephemeral=True)
+
+
 # Lista os comandos disponíveis com uma breve explicação
-@client.command(name="help")
-async def help_command(ctx):
+@client.tree.command(name="help", description="Lista os comandos do Hbot com uma breve explicação.")
+async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="Comandos do Hbot",
-        description="Prefixo `h.` · `<>` = obrigatório, `[]` = opcional",
+        description="Digite `/` no chat para ver os comandos e os parâmetros de cada um.",
         color=discord.Color.blurple(),
     )
-    embed.add_field(name="h.help", value="Mostra esta lista de comandos.", inline=False)
-    embed.add_field(name="h.version", value="Mostra a versão atual do Hbot.", inline=False)
-    embed.add_field(name="h.del <n>",
-                    value="Apaga as últimas `n` mensagens do canal. Requer permissão de gerenciar mensagens.", inline=False)
-    embed.add_field(name="h.fbe <ext> [profundidade=100]",
-                    value="Procura no histórico e posta as URLs dos anexos que terminam em `ext`. Ex.: `h.fbe pdf 50`.", inline=False)
-    embed.add_field(name="h.mamadas", value="Mostra quantas mamadas você acumulou.", inline=False)
-    embed.add_field(name="h.rank", value="Ranking de mamadas do servidor.", inline=False)
-    embed.add_field(name="h.presente",
+    embed.add_field(name="/help", value="Mostra esta lista de comandos.", inline=False)
+    embed.add_field(name="/version", value="Mostra a versão atual do Hbot.", inline=False)
+    embed.add_field(name="/del quantidade",
+                    value="Apaga as últimas mensagens do canal. Requer permissão de gerenciar mensagens.", inline=False)
+    embed.add_field(name="/fbe extensao [profundidade=100]",
+                    value="Procura no histórico e posta as URLs dos anexos que terminam em `extensao`. Ex.: `pdf`.",
+                    inline=False)
+    embed.add_field(name="/mamadas", value="Mostra quantas mamadas você acumulou.", inline=False)
+    embed.add_field(name="/rank", value="Ranking de mamadas do servidor.", inline=False)
+    embed.add_field(name="/presente",
                     value=f"Marca presença na sessão de hoje (segunda e quinta, até as {BO.presenca.FECHAMENTO.strftime('%Hh')}).",
                     inline=False)
-    embed.add_field(name="h.ausente [quando] <motivo>",
+    embed.add_field(name="/ausente motivo [quando]",
                     value="Avisa que não vai. Sem `quando`, vale a próxima sessão; com antecedência: `seg`, `qui` ou "
-                          "`DD/MM`. Ex.: `h.ausente 23/10 viagem`. O cargo vota numa enquete até o fechamento: "
+                          "`DD/MM`. O cargo vota numa enquete até o fechamento: "
                           "quem não vota conta a favor; com metade ou mais contra, a ausência é cancelada "
                           "(vira falta se a lista já fechou).", inline=False)
-    embed.add_field(name="h.lista", value="Mostra quem já marcou presença/ausência na sessão de hoje (ou na próxima) "
-                                          "e quem falta.", inline=False)
-    embed.add_field(name="h.faltas [MM/AAAA]",
-                    value="Faltas e ausências do mês. No dia 1, quem mais faltou no mês anterior ganha uma mamada.",
+    embed.add_field(name="/lista", value="Mostra quem já marcou presença/ausência na sessão de hoje (ou na próxima) "
+                                         "e quem falta.", inline=False)
+    embed.add_field(name="/faltas [mes]",
+                    value="Faltas e ausências do mês (`MM/AAAA`). No dia 1, quem mais faltou no mês anterior ganha uma mamada.",
                     inline=False)
-    embed.add_field(name="h.presenca_config <#canal> <@cargo>",
+    embed.add_field(name="/presenca_config canal cargo",
                     value="Define o canal dos avisos e o cargo de quem precisa marcar. Requer permissão de gerenciar o servidor.",
                     inline=False)
-    await ctx.channel.send(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # Mostra a versão atual do Hbot
-@client.command(name="version")
-async def version_command(ctx):
-    await ctx.channel.send(f"Hbot v{HBOT_VERSION}")
+@client.tree.command(name="version", description="Mostra a versão atual do Hbot.")
+async def version_command(interaction: discord.Interaction):
+    await interaction.response.send_message(f"Hbot v{HBOT_VERSION}")
 
 
-# Comando para encontrar todos os arquivos no historico do chat
-# arg1: formato do arquivo a ser procurado
-# arg2: profundidade da busca
-@client.command(name="fbe")
-async def get_file_by_extension(ctx, arg1, arg2=100):
-    print("get_file_by_extension: ", arg1, arg2)
-    arg2 = int(arg2)
-    async for message in ctx.channel.history(before=ctx.message.created_at,
-                                             limit=arg2):
-        for attachment in message.attachments:
-            if attachment.filename.endswith(arg1):
-                print(attachment.url)
-                await ctx.send(attachment.url)
+def juntar_em_mensagens(linhas, limite=2000):
+    """Agrupa linhas em textos de até `limite` caracteres (limite de uma mensagem do Discord)."""
+    mensagens = []
+    for linha in linhas:
+        if mensagens and len(mensagens[-1]) + 1 + len(linha) <= limite:
+            mensagens[-1] += '\n' + linha
+        else:
+            mensagens.append(linha)
+    return mensagens
 
 
-# Comando para apagar mensagens do chat
-# arg1: quantidade de menssagens a serem apagadas
-@client.command(name="del")
-async def delete_messages(ctx, arg1: int = None):
-    print("delete_messages: ", arg1)
-
-    if arg1 == None:
-        await ctx.channel.send(
-            "É preciso informar a quantidade de menssagens a serem apagadas!")
+# Encontra os anexos com uma extensão no histórico do canal
+@client.tree.command(name="fbe", description="Posta as URLs dos anexos do histórico do canal com a extensão informada.")
+@app_commands.describe(extensao="Final do nome do arquivo. Ex.: pdf",
+                       profundidade="Quantas mensagens do histórico varrer (padrão 100)")
+async def get_file_by_extension(interaction: discord.Interaction, extensao: str,
+                                profundidade: app_commands.Range[int, 1, 1000] = 100):
+    await interaction.response.defer()
+    urls = []
+    async for message in interaction.channel.history(before=interaction.created_at, limit=profundidade):
+        urls.extend(a.url for a in message.attachments if a.filename.lower().endswith(extensao.lower()))
+    if not urls:
+        await interaction.followup.send(f'Nenhum anexo `{extensao}` nas últimas {profundidade} mensagens.')
         return
+    for texto in juntar_em_mensagens(urls):
+        await interaction.followup.send(texto)
 
-    arg1 = int(arg1)
 
-    if arg1 < 0:
-        await ctx.channel.send("Tem que ser um numero positivo né...")
+# Apaga as últimas mensagens do canal
+@client.tree.command(name="del", description="Apaga as últimas mensagens do canal.")
+@app_commands.describe(quantidade="Quantas mensagens apagar")
+@app_commands.guild_only()
+@app_commands.default_permissions(manage_messages=True)
+async def delete_messages(interaction: discord.Interaction, quantidade: app_commands.Range[int, 1, 500]):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        apagadas = await interaction.channel.purge(limit=quantidade, before=interaction.created_at)
+    except discord.Forbidden:
+        await interaction.followup.send('Não tenho permissão de gerenciar mensagens neste canal.', ephemeral=True)
         return
-
-    async with ctx.channel.typing():
-        async for message in ctx.channel.history(before=ctx.message.created_at,
-                                                 limit=arg1):
-            await message.delete()
-
-        await ctx.message.delete()
-        await ctx.channel.send(":thumbsup:")
-    await asyncio.sleep(2)
-    message = await ctx.channel.history(limit=1).flatten()
-    await message[0].delete()
+    await interaction.followup.send(f'🗑️ {len(apagadas)} mensagem(ns) apagada(s).', ephemeral=True)
 
 
-@client.command(name="mamadas")
-async def get_mamadas(ctx):
-    qtd_mamadas = BO.usuario.Usuario(user=ctx.author,
-                                     cd_servidor=ctx.guild.id).get_mamadas()
-    
-    await ctx.channel.send(f'Você mamou {qtd_mamadas} vezes.')
+@client.tree.command(name="mamadas", description="Mostra quantas mamadas você acumulou.")
+@app_commands.guild_only()
+async def get_mamadas(interaction: discord.Interaction):
+    qtd_mamadas = BO.usuario.Usuario(user=interaction.user,
+                                     cd_servidor=interaction.guild_id).get_mamadas()
+
+    await interaction.response.send_message(f'Você mamou {qtd_mamadas} vezes.')
 
 
-@client.command(name="rank")
-async def get_rank(ctx):
-    rank_mamadas = BO.usuario.Usuario(user=ctx.author,
-                                      cd_servidor=ctx.guild.id).get_rank_mamadas()
-    
-    await ctx.channel.send(rank_mamadas)
+@client.tree.command(name="rank", description="Ranking de mamadas do servidor.")
+@app_commands.guild_only()
+async def get_rank(interaction: discord.Interaction):
+    rank_mamadas = BO.usuario.Usuario(user=interaction.user,
+                                      cd_servidor=interaction.guild_id).get_rank_mamadas()
+
+    await interaction.response.send_message(rank_mamadas)
 
 # --- Lista de presença (lógica de banco e horários em BO/presenca.py) ---
 
@@ -225,92 +246,97 @@ def configs_presenca():
     return resultado
 
 
-async def checar_cargo(ctx):
-    """Valida se o autor está na lista. Devolve True ou responde o motivo e devolve False."""
-    config = get_cargo_presenca(ctx.guild)
+async def checar_cargo(interaction):
+    """Valida se quem chamou está na lista. Devolve True ou responde o motivo (só pra ele) e devolve False."""
+    config = get_cargo_presenca(interaction.guild)
     if not config:
-        await ctx.channel.send('A lista de presença não está configurada. Use `h.presenca_config #canal @cargo`.')
+        await interaction.response.send_message('A lista de presença não está configurada. Use `/presenca_config`.',
+                                                ephemeral=True)
         return False
     _, cargo = config
-    if cargo not in ctx.author.roles:
-        await ctx.channel.send(f'Você não está na lista (cargo **{cargo.name}**).')
+    if cargo not in interaction.user.roles:
+        await interaction.response.send_message(f'Você não está na lista (cargo **{cargo.name}**).', ephemeral=True)
         return False
     return True
 
 
-@client.command(name="presente")
-@commands.guild_only()
-async def presente(ctx):
-    if not await checar_cargo(ctx):
+@client.tree.command(name="presente", description="Marca presença na sessão de hoje.")
+@app_commands.guild_only()
+async def presente(interaction: discord.Interaction):
+    if not await checar_cargo(interaction):
         return
     if not BO.presenca.lista_aberta():
         hoje = BO.presenca.agora().date()
         proxima = BO.presenca.proxima_sessao(hoje + timedelta(days=1))
         if BO.presenca.eh_dia_de_sessao(hoje):
-            await ctx.channel.send(f'A lista de hoje já fechou. Próxima sessão: {proxima.strftime("%d/%m")}.')
+            texto = f'A lista de hoje já fechou. Próxima sessão: {proxima.strftime("%d/%m")}.'
         else:
-            await ctx.channel.send(f'Hoje não tem sessão. Próxima: {proxima.strftime("%d/%m")}.')
+            texto = f'Hoje não tem sessão. Próxima: {proxima.strftime("%d/%m")}.'
+        await interaction.response.send_message(texto, ephemeral=True)
         return
     hoje = BO.presenca.agora().date()
-    anterior = BO.presenca.get_marcacao(ctx.guild.id, ctx.author.id, hoje)
-    BO.presenca.marcar(ctx.guild.id, ctx.author, hoje, 'presente')
-    await ctx.message.add_reaction('✅')
+    anterior = BO.presenca.get_marcacao(interaction.guild_id, interaction.user.id, hoje)
+    BO.presenca.marcar(interaction.guild_id, interaction.user, hoje, 'presente')
     if anterior and anterior['status'] == 'pendente':
-        await encerrar_enquete(ctx.guild, anterior['cd_canal_enquete'], anterior['cd_enquete'])
-        await ctx.channel.send(f'{ctx.author.display_name} vai sim! Votação da ausência cancelada.')
+        await interaction.response.send_message(
+            f'✅ {interaction.user.display_name} vai sim! Votação da ausência cancelada.')
+        await encerrar_enquete(interaction.guild, anterior['cd_canal_enquete'], anterior['cd_enquete'])
+    else:
+        await interaction.response.send_message(f'✅ {interaction.user.display_name} vai hoje!')
 
 
-@client.command(name="ausente")
-@commands.guild_only()
-async def ausente(ctx, *, texto: str = None):
-    """`h.ausente [quando] [motivo]`: `quando` é seg/qui ou DD/MM[/AAAA]; sem ele, vale a próxima sessão."""
-    if not await checar_cargo(ctx):
+@client.tree.command(name="ausente", description="Avisa que não vai à sessão. Abre uma votação para o cargo.")
+@app_commands.describe(motivo="Por que não vai (a galera vota em cima disso)",
+                       quando="Sessão: seg, qui ou DD/MM. Sem preencher, vale a próxima sessão")
+@app_commands.guild_only()
+async def ausente(interaction: discord.Interaction, motivo: app_commands.Range[str, 1, 200], quando: str = None):
+    if not await checar_cargo(interaction):
         return
     hoje = BO.presenca.agora().date()
-    dia, motivo = None, texto
-    if texto:
-        primeiro, _, resto = texto.partition(' ')
-        dia = BO.presenca.ler_data(primeiro, hoje)
-        if dia:
-            motivo = resto.strip() or None
-
-    if dia is None:
+    if quando is None:
         dia = BO.presenca.sessao_alvo()
-    elif not BO.presenca.eh_dia_de_sessao(dia):
-        await ctx.channel.send(f'{BO.presenca.formatar_dia(dia)} não tem sessão (só segunda e quinta).')
-        return
-    elif dia < hoje or (dia == hoje and not BO.presenca.lista_aberta()):
-        await ctx.channel.send(f'A lista de {BO.presenca.formatar_dia(dia)} já fechou.')
-        return
+    else:
+        dia = BO.presenca.ler_data(quando.strip(), hoje)
+        if dia is None:
+            await interaction.response.send_message(f'Não entendi a data `{quando}`. Use `seg`, `qui` ou `DD/MM`.',
+                                                    ephemeral=True)
+            return
+        if not BO.presenca.eh_dia_de_sessao(dia):
+            await interaction.response.send_message(
+                f'{BO.presenca.formatar_dia(dia)} não tem sessão (só segunda e quinta).', ephemeral=True)
+            return
+        if dia < hoje or (dia == hoje and not BO.presenca.lista_aberta()):
+            await interaction.response.send_message(f'A lista de {BO.presenca.formatar_dia(dia)} já fechou.',
+                                                    ephemeral=True)
+            return
 
     quando = BO.presenca.formatar_dia(dia)
-    if not motivo:
-        await ctx.channel.send(f'Informe o motivo pra galera votar. Ex.: `h.ausente {dia.strftime("%d/%m")} viagem`.')
-        return
-    anterior = BO.presenca.get_marcacao(ctx.guild.id, ctx.author.id, dia)
+    anterior = BO.presenca.get_marcacao(interaction.guild_id, interaction.user.id, dia)
     if anterior and anterior['status'] in ('ausente', 'pendente'):
         situacao = 'em votação' if anterior['status'] == 'pendente' else 'aprovada'
-        await ctx.channel.send(f'Você já tem uma ausência {situacao} para {quando}.')
+        await interaction.response.send_message(f'Você já tem uma ausência {situacao} para {quando}.', ephemeral=True)
         return
 
-    canal, cargo = get_cargo_presenca(ctx.guild)
-    votantes = [m for m in membros_do_cargo(cargo) if m != ctx.author]
+    canal, cargo = get_cargo_presenca(interaction.guild)
+    votantes = [m for m in membros_do_cargo(cargo) if m != interaction.user]
     if not votantes:  # ninguém pra votar
-        BO.presenca.marcar(ctx.guild.id, ctx.author, dia, 'ausente', motivo)
-        await ctx.channel.send(f'🙋 Ausência marcada para {quando} (ninguém mais no cargo pra votar).')
+        BO.presenca.marcar(interaction.guild_id, interaction.user, dia, 'ausente', motivo)
+        await interaction.response.send_message(f'🙋 Ausência marcada para {quando} (ninguém mais no cargo pra votar).')
         return
 
     # Enquete do Discord: dura até o fechamento da sessão (horas inteiras, mín. 1h, máx. 32 dias)
     horas = math.ceil((BO.presenca.fechamento_em(dia) - BO.presenca.agora()).total_seconds() / 3600)
     if horas > DURACAO_MAX_ENQUETE:
-        await ctx.channel.send(f'Dá pra avisar com no máximo {DURACAO_MAX_ENQUETE // 24} dias de antecedência.')
+        await interaction.response.send_message(
+            f'Dá pra avisar com no máximo {DURACAO_MAX_ENQUETE // 24} dias de antecedência.', ephemeral=True)
         return
-    enquete = discord.Poll(question=f'{ctx.author.display_name} vai faltar {quando}: "{motivo}". Aprovam?'[:300],
+    # A frase do Claude leva uns segundos: segura a resposta (o Discord exige uma em até 3 s)
+    await interaction.response.defer()
+    enquete = discord.Poll(question=f'{interaction.user.display_name} vai faltar {quando}: "{motivo}". Aprovam?'[:300],
                            duration=timedelta(hours=max(horas, 1)))
     enquete.add_answer(text=VOTO_APROVA, emoji='✅')
     enquete.add_answer(text=VOTO_REPROVA, emoji='❌')
-    async with ctx.channel.typing():
-        frase = await BO.presenca_mensagens.frase_votacao(ctx.author.display_name, motivo)
+    frase = await BO.presenca_mensagens.frase_votacao(interaction.user.display_name, motivo)
     texto = (f'🗳️ {cargo.mention} votem até {quando} às {BO.presenca.FECHAMENTO.strftime("%Hh")}. '
              f'Quem não votar conta a favor (empate reprova).')
     try:
@@ -318,13 +344,28 @@ async def ausente(ctx, *, texto: str = None):
                                     allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=[cargo]))
     except discord.HTTPException as erro:
         print(f'[Hbot] Erro ao criar enquete de ausência: {erro}')
-        await ctx.channel.send('Não consegui abrir a votação (o bot precisa da permissão de enviar enquetes no canal).')
+        await interaction.followup.send('Não consegui abrir a votação (o bot precisa da permissão de enviar enquetes no canal).')
         return
 
-    BO.presenca.marcar(ctx.guild.id, ctx.author, dia, 'pendente', motivo, canal.id, mensagem.id)
-    await ctx.message.add_reaction('🗳️')
-    if ctx.channel != canal:
-        await ctx.channel.send(f'Votação da sua ausência aberta em {canal.mention}.')
+    BO.presenca.marcar(interaction.guild_id, interaction.user, dia, 'pendente', motivo, canal.id, mensagem.id)
+    await interaction.followup.send(f'🗳️ {interaction.user.display_name} não vai {quando} ("{motivo}"). '
+                                    f'Votação aberta: {mensagem.jump_url}',
+                                    allowed_mentions=discord.AllowedMentions.none())
+
+
+@ausente.autocomplete('quando')
+async def ausente_quando(interaction: discord.Interaction, atual: str):
+    """Sugere as próximas sessões (com a lista ainda aberta), filtrando pelo que já foi digitado."""
+    dia = BO.presenca.sessao_alvo()
+    opcoes = []
+    while len(opcoes) < 8:
+        nome = BO.presenca.formatar_dia(dia)
+        if atual.lower() in nome:
+            opcoes.append(app_commands.Choice(name=nome, value=dia.strftime('%d/%m/%Y')))
+        dia = BO.presenca.proxima_sessao(dia + timedelta(days=1))
+        if (dia - BO.presenca.agora().date()).days > DURACAO_MAX_ENQUETE // 24:
+            break
+    return opcoes
 
 
 # --- Votação das ausências (enquetes do Discord) ---
@@ -388,7 +429,7 @@ async def finalizar_ausencia(pendente):
         texto = f'❌ Ausência de <@{pendente["cd_user"]}> em {quando} **reprovada** ({placar}). Ficou com falta.'
     else:
         texto = (f'❌ Ausência de <@{pendente["cd_user"]}> em {quando} **reprovada** ({placar}). '
-                 f'Marque `h.presente` até as {BO.presenca.FECHAMENTO.strftime("%Hh")} do dia, senão é falta.')
+                 f'Marque `/presente` até as {BO.presenca.FECHAMENTO.strftime("%Hh")} do dia, senão é falta.')
     canal = (mensagem and mensagem.channel) or guild.get_channel(pendente['cd_canal_enquete'])
     if canal:
         membro = guild.get_member(pendente['cd_user'])
@@ -422,56 +463,52 @@ async def verificar_enquetes():
             await finalizar_ausencia(pendente)
 
 
-@client.command(name="lista")
-@commands.guild_only()
-async def lista(ctx):
-    config = get_cargo_presenca(ctx.guild)
+@client.tree.command(name="lista", description="Quem já marcou presença/ausência na sessão de hoje (ou na próxima).")
+@app_commands.guild_only()
+async def lista(interaction: discord.Interaction):
+    config = get_cargo_presenca(interaction.guild)
     if not config:
-        await ctx.channel.send('A lista de presença não está configurada. Use `h.presenca_config #canal @cargo`.')
+        await interaction.response.send_message('A lista de presença não está configurada. Use `/presenca_config`.',
+                                                ephemeral=True)
         return
     # Em dia de sessão mostra a de hoje (mesmo fechada); senão, a próxima, com as ausências já avisadas
     hoje = BO.presenca.agora().date()
     dia = hoje if BO.presenca.eh_dia_de_sessao(hoje) else BO.presenca.proxima_sessao(hoje)
-    await ctx.channel.send(texto_lista(config[1], dia, fechada=dia == hoje and not BO.presenca.lista_aberta()),
-                           allowed_mentions=discord.AllowedMentions.none())
+    await interaction.response.send_message(
+        texto_lista(config[1], dia, fechada=dia == hoje and not BO.presenca.lista_aberta()),
+        allowed_mentions=discord.AllowedMentions.none())
 
 
-@client.command(name="faltas")
-@commands.guild_only()
-async def faltas(ctx, mes: str = None):
+@client.tree.command(name="faltas", description="Faltas e ausências do mês.")
+@app_commands.describe(mes="Mês no formato MM/AAAA (padrão: mês atual)")
+@app_commands.guild_only()
+async def faltas(interaction: discord.Interaction, mes: str = None):
     if mes:
         try:
             numero, ano = mes.split('/')
             mes = date(int(ano), int(numero), 1)
         except ValueError:
-            await ctx.channel.send('Use o mês no formato `MM/AAAA`. Ex.: `h.faltas 10/2026`.')
+            await interaction.response.send_message('Use o mês no formato `MM/AAAA`. Ex.: `10/2026`.', ephemeral=True)
             return
     else:
         mes = BO.presenca.agora().date().replace(day=1)
 
     linhas = [f'📋 **Faltas de {BO.presenca.nome_mes(mes)}**']
-    for posicao, (_, nome, qtd_faltas, qtd_ausencias) in enumerate(BO.presenca.get_faltas_mes(ctx.guild.id, mes), 1):
+    for posicao, (_, nome, qtd_faltas, qtd_ausencias) in enumerate(BO.presenca.get_faltas_mes(interaction.guild_id, mes), 1):
         linhas.append(f'{posicao}. {nome} — {qtd_faltas} falta(s), {qtd_ausencias} ausência(s)')
     if len(linhas) == 1:
         linhas.append('Ninguém faltou nem se ausentou. 👏')
-    await ctx.channel.send('\n'.join(linhas), allowed_mentions=discord.AllowedMentions.none())
+    await interaction.response.send_message('\n'.join(linhas), allowed_mentions=discord.AllowedMentions.none())
 
 
-@client.command(name="presenca_config")
-@commands.guild_only()
-@commands.has_permissions(manage_guild=True)
-async def presenca_config(ctx, canal: discord.TextChannel, cargo: discord.Role):
-    BO.presenca.set_config(ctx.guild.id, canal.id, cargo.id)
-    await ctx.channel.send(f'Feito! Avisos em {canal.mention}, lista do cargo **{cargo.name}**.',
-                           allowed_mentions=discord.AllowedMentions.none())
-
-
-@presenca_config.error
-async def presenca_config_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.channel.send('Precisa da permissão de gerenciar o servidor.')
-    else:
-        await ctx.channel.send('Uso: `h.presenca_config #canal @cargo`')
+@client.tree.command(name="presenca_config", description="Define o canal dos avisos e o cargo da lista de presença.")
+@app_commands.describe(canal="Canal dos avisos e das votações", cargo="Cargo de quem precisa marcar presença")
+@app_commands.guild_only()
+@app_commands.default_permissions(manage_guild=True)
+async def presenca_config(interaction: discord.Interaction, canal: discord.TextChannel, cargo: discord.Role):
+    BO.presenca.set_config(interaction.guild_id, canal.id, cargo.id)
+    await interaction.response.send_message(f'Feito! Avisos em {canal.mention}, lista do cargo **{cargo.name}**.',
+                                            allowed_mentions=discord.AllowedMentions.none())
 
 
 @tasks.loop(time=BO.presenca.ABERTURA)
@@ -482,7 +519,7 @@ async def abrir_lista():
     for _, canal, cargo in configs_presenca():
         frase = await BO.presenca_mensagens.frase_abertura(BO.presenca.agora().date())
         texto = (f'📋 {cargo.mention} Lista de presença aberta! '
-                 f'Marquem `h.presente` (ou `h.ausente [motivo]`) até as {fechamento}.')
+                 f'Marquem `/presente` (ou `/ausente`) até as {fechamento}.')
         await canal.send(com_frase(frase, texto),
                          allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=[cargo]))
 
@@ -499,7 +536,7 @@ async def lembrar_lista():
         if pendentes:
             frase = await BO.presenca_mensagens.frase_lembrete([m.display_name for m in pendentes])
             texto = (f'⏰ {" ".join(m.mention for m in pendentes)} a lista fecha às {fechamento}! '
-                     f'`h.presente` ou `h.ausente [motivo]`, senão é falta.')
+                     f'`/presente` ou `/ausente`, senão é falta.')
             await canal.send(com_frase(frase, texto),
                              allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=pendentes))
 

@@ -75,7 +75,7 @@ Copie o token gerado para o `.env` do servidor e para o Vaultwarden, depois
 imagem (Dockerfile, instalador nativo, auto-update desligado — atualiza a cada rebuild).
 
 ## Antes de subir — no Discord Developer Portal
-O bot lê o conteúdo das mensagens (comandos por prefixo `h.`), então habilite os
+O bot lê o conteúdo das mensagens (mamada aleatória, aviso do `prune`), então habilite os
 **Privileged Gateway Intents**:
 - ✅ **MESSAGE CONTENT INTENT**
 - ✅ **SERVER MEMBERS INTENT**

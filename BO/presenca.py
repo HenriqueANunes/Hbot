@@ -10,7 +10,7 @@ Fluxo de um dia de sessão (horários abaixo, fuso de São Paulo):
 - ABERTURA:   o bot avisa no canal configurado, mencionando o cargo.
 - LEMBRETE:   menciona quem do cargo ainda não marcou nada.
 - FECHAMENTO: quem do cargo não marcou presença nem ausência leva uma falta.
-`h.presente` vale o dia todo da sessão, até o FECHAMENTO. `h.ausente` também pode ser
+`/presente` vale o dia todo da sessão, até o FECHAMENTO. `/ausente` também pode ser
 marcado com antecedência para qualquer sessão futura (ver ler_data()).
 
 Ausência passa por votação: o bot abre uma enquete do Discord no canal da lista e a
@@ -23,7 +23,7 @@ No dia 1 de cada mês (PREMIACAO), quem teve mais faltas no mês anterior
 ganha uma mamada (empate: todos os empatados). Ausência avisada não conta.
 
 Tabelas (PostgreSQL, criadas em migrations/0002_presenca.sql):
-- `presenca_config`: canal e cargo da lista, por servidor (definidos com h.presenca_config)
+- `presenca_config`: canal e cargo da lista, por servidor (definidos com /presenca_config)
 - `presencas`: um registro por usuário/servidor/dia, status presente | ausente | pendente | falta
   (`cd_canal_enquete`/`cd_enquete`: mensagem da enquete da ausência)
 - `presenca_premiacoes`: meses já premiados (evita premiar duas vezes)
