@@ -25,6 +25,11 @@ Todos usam o prefixo `h.`. Argumentos entre `<>` são obrigatórios; entre `[]` 
 | `h.set_gold` | `<qtd>` | Define seu gold para `qtd` (valor absoluto). |
 | `h.pp` | `[qtd]` | Sem argumento: mostra seus **PPs**. Com argumento: **soma** `qtd`. |
 | `h.set_pp` | `<qtd>` | Define seus PPs para `qtd`. |
+| `h.presente` | — | Marca presença na sessão de hoje (segunda/quinta, até o fechamento). Só para quem tem o cargo da lista. |
+| `h.ausente` | `[quando] <motivo>` | Avisa que não vai (motivo obrigatório). Sem `quando`, vale a próxima sessão (hoje, se a lista ainda está aberta). Com antecedência (até 32 dias): `seg`, `qui` ou `DD/MM[/AAAA]` — ex.: `h.ausente 23/10 viagem`. Abre uma votação (ver abaixo). |
+| `h.lista` | — | Quem marcou presença/ausência na sessão de hoje (fora de dia de sessão, na próxima) e quem ainda não marcou (ou faltou, depois do fechamento). |
+| `h.faltas` | `[MM/AAAA]` | Faltas e ausências do mês (padrão: mês atual). |
+| `h.presenca_config` | `<#canal> <@cargo>` | Define o canal dos avisos e o cargo de quem precisa marcar. Requer **Gerenciar Servidor**. |
 
 > `gold` e `pp` são dois contadores independentes por usuário/servidor — um mini-RPG
 > sem regra fixa, só pra marcar pontos manualmente.
@@ -60,6 +65,33 @@ Leva ~3–5 s (o bot mostra "digitando…"). Sem token, com erro ou após 15 s, 
 frase fixa `Da uma mamadinha aqui <nome>`. Só uma geração por vez; se já tiver uma
 rodando, usa a frase fixa.
 
+### 📋 Lista de presença (segunda e quinta)
+Lógica e horários em [`BO/presenca.py`](BO/presenca.py) (constantes `ABERTURA`, `LEMBRETE`,
+`FECHAMENTO`, `PREMIACAO`, fuso `America/Sao_Paulo`). Precisa de `h.presenca_config` uma vez.
+
+- **20h** — o bot abre a lista no canal, mencionando o cargo.
+- **21h** — lembrete mencionando só quem do cargo ainda não marcou nada.
+- **22h** — fecha: quem não marcou `h.presente` nem `h.ausente` leva **falta**; o bot posta o resumo.
+- **Dia 1, 00:05** — quem teve mais faltas no mês anterior ganha **uma mamada** (empate: todos).
+  Ausências avisadas não contam.
+
+`h.presente` vale o dia todo da sessão até o fechamento; `h.ausente` também pode ser marcado
+com antecedência para qualquer sessão futura. Um sobrescreve o outro (quem avisou ausência e
+resolveu ir, é só dar `h.presente` no dia — se a votação ainda estiver aberta, ela é cancelada).
+
+**Votação da ausência.** Cada `h.ausente` abre uma **enquete do Discord** no canal da lista
+(✅ Aprovo / ❌ Não aprovo). Enquanto isso a ausência fica "em votação" (não leva lembrete nem falta).
+- Votam os membros do cargo, **menos quem pediu**; votos de fora do cargo são ignorados na contagem.
+- **Quem não vota conta a favor**: só é reprovada se **mais da metade** dos votantes votar ❌ (empate aprova).
+- A enquete encerra quando **todos os votantes votarem** ou no **fechamento da sessão** (22h do dia) —
+  mesmo que o resultado já esteja decidido antes.
+- Aprovada → ausência. Reprovada com a lista aberta → a marcação some (ainda dá pra `h.presente`);
+  reprovada depois do fechamento → **falta**.
+- O bot precisa da permissão **Enviar Enquetes** no canal. Votações vencidas com o bot fora do ar são
+  apuradas quando ele volta (loop a cada 5 min).
+Se o bot estiver fora do ar no fechamento ou na premiação, ele faz em silêncio quando volta
+(só o fechamento do próprio dia).
+
 ### Outras reações
 - Mensagem contendo a palavra **`prune`** → o bot reclama e sugere usar `h.del`.
 
@@ -86,6 +118,10 @@ usuário **por servidor**:
 | `nome` | Nome do usuário |
 | `qtd_mamadas` | Contador de mamadas |
 | `gold`, `pp` | Contadores do mini-RPG |
+
+Lista de presença: `presenca_config` (canal/cargo por servidor), `presencas` (um registro por
+usuário/servidor/dia, `status` = `presente` | `ausente` | `pendente` | `falta`, `motivo`, mensagem da enquete) e
+`presenca_premiacoes` (meses já premiados). Todas criadas no boot.
 
 Conexão via variável de ambiente `DATABASE_URL`.
 
