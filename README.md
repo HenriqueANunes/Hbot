@@ -76,6 +76,13 @@ Lógica e horários em [`BO/presenca.py`](BO/presenca.py) (constantes `ABERTURA`
 - **Dia 1, 00:05** — quem teve mais faltas no mês anterior ganha **uma mamada** (empate: todos).
   Ausências avisadas não contam.
 
+As mensagens automáticas (abertura, lembrete, resumo do fechamento, votação aberta, resultado
+da votação e rei das faltas) começam com uma frase de zoeira **pesada** gerada pelo Claude, a partir
+do contexto (nomes, motivo, resultado) — prompts em [`BO/presenca_mensagens.py`](BO/presenca_mensagens.py).
+A piada da mamada só entra no rei das faltas. Menções, horários, placar e listas ficam no texto fixo
+logo abaixo (o Claude nunca é a fonte da informação); sem Claude, sai só o texto fixo. As mensagens só
+notificam quem o código menciona (`allowed_mentions`), então um `@everyone` gerado não pinga ninguém.
+
 `h.presente` vale o dia todo da sessão até o fechamento; `h.ausente` também pode ser marcado
 com antecedência para qualquer sessão futura. Um sobrescreve o outro (quem avisou ausência e
 resolveu ir, é só dar `h.presente` no dia — se a votação ainda estiver aberta, ela é cancelada).

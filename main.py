@@ -9,12 +9,13 @@ import BO.usuario
 import BO.rpg
 import BO.mamada
 import BO.presenca
+import BO.presenca_mensagens
 # import aiocron
 
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.3.0"
+HBOT_VERSION = "1.4.0"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -223,21 +224,38 @@ def membros_do_cargo(cargo):
     return sorted((m for m in cargo.members if not m.bot), key=lambda m: m.display_name.lower())
 
 
-def texto_lista(cargo, dia, fechada=False):
+def com_frase(frase, texto):
+    """Junta a frase de zoeira do Claude (pode ser None) com o texto fixo da mensagem."""
+    return f'{frase}\n{texto}' if frase else texto
+
+
+def grupos_lista(cargo, dia, fechada=False):
+    """Membros do cargo por situação no dia: presentes, ausentes, votacao, faltas, pendentes.
+    Ausentes e votacao vêm como (membro, motivo)."""
     marcacoes = BO.presenca.get_marcacoes(cargo.guild.id, dia)
-    presentes, ausentes, votacao, faltas, pendentes = [], [], [], [], []
+    grupos = {'presentes': [], 'ausentes': [], 'votacao': [], 'faltas': [], 'pendentes': []}
     for membro in membros_do_cargo(cargo):
         status, motivo = marcacoes.get(membro.id, (None, None))
         if status == 'presente':
-            presentes.append(membro.display_name)
+            grupos['presentes'].append(membro)
         elif status == 'ausente':
-            ausentes.append(f'{membro.display_name} ({motivo})' if motivo else membro.display_name)
+            grupos['ausentes'].append((membro, motivo))
         elif status == 'pendente':
-            votacao.append(f'{membro.display_name} ({motivo})')
+            grupos['votacao'].append((membro, motivo))
         elif status == 'falta' or fechada:
-            faltas.append(membro.display_name)
+            grupos['faltas'].append(membro)
         else:
-            pendentes.append(membro.display_name)
+            grupos['pendentes'].append(membro)
+    return grupos
+
+
+def texto_lista(cargo, dia, fechada=False):
+    grupos = grupos_lista(cargo, dia, fechada)
+    presentes = [m.display_name for m in grupos['presentes']]
+    ausentes = [f'{m.display_name} ({motivo})' if motivo else m.display_name for m, motivo in grupos['ausentes']]
+    votacao = [f'{m.display_name} ({motivo})' for m, motivo in grupos['votacao']]
+    faltas = [m.display_name for m in grupos['faltas']]
+    pendentes = [m.display_name for m in grupos['pendentes']]
 
     linhas = [f'📋 **Lista de presença — {BO.presenca.formatar_dia(dia)}**']
     linhas.append(f'✅ Presentes ({len(presentes)}): {", ".join(presentes) or "—"}')
@@ -347,10 +365,13 @@ async def ausente(ctx, *, texto: str = None):
                            duration=timedelta(hours=max(horas, 1)))
     enquete.add_answer(text=VOTO_APROVA, emoji='✅')
     enquete.add_answer(text=VOTO_REPROVA, emoji='❌')
+    async with ctx.channel.typing():
+        frase = await BO.presenca_mensagens.frase_votacao(ctx.author.display_name, motivo)
+    texto = (f'🗳️ {cargo.mention} votem até {quando} às {BO.presenca.FECHAMENTO.strftime("%Hh")}. '
+             f'Quem não votar conta a favor; só reprova com mais da metade contra.')
     try:
-        mensagem = await canal.send(f'🗳️ {cargo.mention} votem até {quando} às {BO.presenca.FECHAMENTO.strftime("%Hh")}. '
-                                    f'Quem não votar conta a favor; só reprova com mais da metade contra.',
-                                    poll=enquete)
+        mensagem = await canal.send(com_frase(frase, texto), poll=enquete,
+                                    allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=[cargo]))
     except discord.HTTPException as erro:
         print(f'[Hbot] Erro ao criar enquete de ausência: {erro}')
         await ctx.channel.send('Não consegui abrir a votação (o bot precisa da permissão de enviar enquetes no canal).')
@@ -426,7 +447,11 @@ async def finalizar_ausencia(pendente):
                  f'Marque `h.presente` até as {BO.presenca.FECHAMENTO.strftime("%Hh")} do dia, senão é falta.')
     canal = (mensagem and mensagem.channel) or guild.get_channel(pendente['cd_canal_enquete'])
     if canal:
-        await canal.send(texto)
+        membro = guild.get_member(pendente['cd_user'])
+        frase = await BO.presenca_mensagens.frase_resultado(membro.display_name if membro else pendente['nome'],
+                                                            pendente['motivo'], aprovada, lista_fechada)
+        await canal.send(com_frase(frase, texto), allowed_mentions=discord.AllowedMentions(
+            everyone=False, roles=False, users=[discord.Object(pendente['cd_user'])]))
 
 
 @client.event
@@ -511,8 +536,11 @@ async def abrir_lista():
         return
     fechamento = BO.presenca.FECHAMENTO.strftime('%Hh')
     for _, canal, cargo in configs_presenca():
-        await canal.send(f'📋 {cargo.mention} Lista de presença aberta! '
-                         f'Marquem `h.presente` (ou `h.ausente [motivo]`) até as {fechamento}.')
+        frase = await BO.presenca_mensagens.frase_abertura(BO.presenca.agora().date())
+        texto = (f'📋 {cargo.mention} Lista de presença aberta! '
+                 f'Marquem `h.presente` (ou `h.ausente [motivo]`) até as {fechamento}.')
+        await canal.send(com_frase(frase, texto),
+                         allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=[cargo]))
 
 
 @tasks.loop(time=BO.presenca.LEMBRETE)
@@ -525,8 +553,11 @@ async def lembrar_lista():
         marcacoes = BO.presenca.get_marcacoes(guild.id, hoje)
         pendentes = [m for m in membros_do_cargo(cargo) if m.id not in marcacoes]
         if pendentes:
-            await canal.send(f'⏰ {" ".join(m.mention for m in pendentes)} a lista fecha às {fechamento}! '
-                             f'`h.presente` ou `h.ausente [motivo]`, senão é falta.')
+            frase = await BO.presenca_mensagens.frase_lembrete([m.display_name for m in pendentes])
+            texto = (f'⏰ {" ".join(m.mention for m in pendentes)} a lista fecha às {fechamento}! '
+                     f'`h.presente` ou `h.ausente [motivo]`, senão é falta.')
+            await canal.send(com_frase(frase, texto),
+                             allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=pendentes))
 
 
 @tasks.loop(time=BO.presenca.FECHAMENTO)
@@ -538,7 +569,12 @@ async def fechar_lista():
         await finalizar_ausencia(pendente)
     for guild, canal, cargo in configs_presenca():
         BO.presenca.registrar_faltas(guild.id, membros_do_cargo(cargo), hoje)
-        await canal.send(texto_lista(cargo, hoje, fechada=True), allowed_mentions=discord.AllowedMentions.none())
+        grupos = grupos_lista(cargo, hoje, fechada=True)
+        frase = await BO.presenca_mensagens.frase_fechamento([m.display_name for m in grupos['presentes']],
+                                                             [m.display_name for m, _ in grupos['ausentes']],
+                                                             [m.display_name for m in grupos['faltas']])
+        await canal.send(com_frase(frase, texto_lista(cargo, hoje, fechada=True)),
+                         allowed_mentions=discord.AllowedMentions.none())
 
 
 @tasks.loop(time=BO.presenca.PREMIACAO)
@@ -557,7 +593,7 @@ async def premiar_mes_anterior():
         if not BO.presenca.registrar_premiacao(guild.id, mes) or maior == 0:
             continue
 
-        ganhadores = []
+        ganhadores, nomes, membros = [], [], []
         for cd_user, nome, qtd_faltas, _ in ranking:
             if qtd_faltas != maior:
                 break
@@ -565,10 +601,16 @@ async def premiar_mes_anterior():
             if membro:
                 BO.usuario.Usuario(user=membro, cd_servidor=guild.id).add_mamada()
                 ganhadores.append(membro.mention)
+                nomes.append(membro.display_name)
+                membros.append(membro)
             else:
                 ganhadores.append(nome)  # saiu do servidor: só é citado
-        await canal.send(f'🏆 Rei das faltas de {BO.presenca.nome_mes(mes)}: {", ".join(ganhadores)} '
-                         f'({maior} falta(s)). Ganhou uma mamada! 😈')
+                nomes.append(nome)
+        frase = await BO.presenca_mensagens.frase_rei_das_faltas(nomes, maior, BO.presenca.nome_mes(mes))
+        texto = (f'🏆 Rei das faltas de {BO.presenca.nome_mes(mes)}: {", ".join(ganhadores)} '
+                 f'({maior} falta(s)). {"Ganharam" if len(ganhadores) > 1 else "Ganhou"} uma mamada! 😈')
+        await canal.send(com_frase(frase, texto),
+                         allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=membros))
 
 
 async def recuperar_presenca():
