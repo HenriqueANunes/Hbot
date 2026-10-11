@@ -3,6 +3,8 @@ import time
 
 from psycopg_pool import ConnectionPool
 
+import BO.migrations
+
 DATABASE_URL = os.environ.get('DATABASE_URL')
 USER_TABLE_NAME = 'usuarios'
 """
@@ -10,7 +12,7 @@ Estrutura do banco (PostgreSQL):
 
 - Conexão via variável de ambiente `DATABASE_URL`
   (ex.: postgresql://hbot:senha@db:5432/hbot)
-- Tabela `usuarios`:
+- Tabela `usuarios` (schema em migrations/0001_usuarios.sql):
     id           BIGSERIAL PRIMARY KEY
     cd_servidor  TEXT     -- id do servidor Discord (string)
     cd_user      TEXT     -- id do usuário Discord (string)
@@ -33,8 +35,8 @@ pool = ConnectionPool(
 
 
 def init_db(retries: int = 10, delay: float = 3.0):
-    """Abre o pool e garante o schema. Faz retry porque o Postgres pode
-    ainda estar subindo quando o container do bot inicia."""
+    """Abre o pool e aplica as migrations (BO/migrations.py). Faz retry na conexão
+    porque o Postgres pode ainda estar subindo quando o container do bot inicia."""
     if not DATABASE_URL:
         raise RuntimeError('DATABASE_URL não definida — configure no .env / stack.')
 
@@ -43,28 +45,18 @@ def init_db(retries: int = 10, delay: float = 3.0):
         try:
             pool.open()
             with pool.connection() as conn:
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS usuarios (
-                        id          BIGSERIAL PRIMARY KEY,
-                        cd_servidor TEXT NOT NULL,
-                        cd_user     TEXT NOT NULL,
-                        nome        TEXT,
-                        qtd_mamadas INTEGER NOT NULL DEFAULT 0,
-                        gold        INTEGER NOT NULL DEFAULT 0,
-                        pp          INTEGER NOT NULL DEFAULT 0,
-                        UNIQUE (cd_servidor, cd_user)
-                    )
-                    """
-                )
-            print('[Hbot] Banco pronto.')
-            return
+                conn.execute('SELECT 1')
+            break
         except Exception as erro:  # noqa: BLE001 - queremos re-tentar em qualquer falha de conexão
             ultimo_erro = erro
             print(f'[Hbot] Banco indisponível (tentativa {tentativa}/{retries}): {erro}')
             time.sleep(delay)
+    else:
+        raise RuntimeError(f'Não foi possível conectar ao banco: {ultimo_erro}')
 
-    raise RuntimeError(f'Não foi possível conectar ao banco: {ultimo_erro}')
+    # Fora do retry: erro numa migration é bug, não banco subindo — falha na hora
+    BO.migrations.aplicar(pool)
+    print('[Hbot] Banco pronto.')
 
 
 class Usuario():

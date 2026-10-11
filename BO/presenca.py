@@ -22,7 +22,7 @@ marcação some (dá pra marcar presença); com a lista fechada, vira falta.
 No dia 1 de cada mês (PREMIACAO), quem teve mais faltas no mês anterior
 ganha uma mamada (empate: todos os empatados). Ausência avisada não conta.
 
-Tabelas (PostgreSQL, criadas em init_db()):
+Tabelas (PostgreSQL, criadas em migrations/0002_presenca.sql):
 - `presenca_config`: canal e cargo da lista, por servidor (definidos com h.presenca_config)
 - `presencas`: um registro por usuário/servidor/dia, status presente | ausente | pendente | falta
   (`cd_canal_enquete`/`cd_enquete`: mensagem da enquete da ausência)
@@ -40,45 +40,6 @@ DIAS_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 APELIDOS_DIA = {'seg': 0, 'segunda': 0, 'qui': 3, 'quinta': 3}
 MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
          'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
-
-
-def init_db():
-    with pool.connection() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS presenca_config (
-                cd_servidor TEXT PRIMARY KEY,
-                cd_canal    TEXT NOT NULL,
-                cd_cargo    TEXT NOT NULL
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS presencas (
-                id          BIGSERIAL PRIMARY KEY,
-                cd_servidor TEXT NOT NULL,
-                cd_user     TEXT NOT NULL,
-                nome        TEXT,
-                data        DATE NOT NULL,
-                status      TEXT NOT NULL CHECK (status IN ('presente', 'ausente', 'pendente', 'falta')),
-                motivo      TEXT,
-                cd_canal_enquete TEXT,
-                cd_enquete  TEXT,
-                marcado_em  TIMESTAMPTZ NOT NULL DEFAULT now(),
-                UNIQUE (cd_servidor, cd_user, data)
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS presenca_premiacoes (
-                cd_servidor TEXT NOT NULL,
-                mes         DATE NOT NULL,  -- primeiro dia do mês premiado
-                PRIMARY KEY (cd_servidor, mes)
-            )
-            """
-        )
 
 
 def agora():

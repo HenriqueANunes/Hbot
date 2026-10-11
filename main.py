@@ -626,5 +626,4 @@ async def recuperar_presenca():
 
 
 BO.usuario.init_db()
-BO.presenca.init_db()
 client.run(os.getenv('TOKEN'))

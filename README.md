@@ -116,7 +116,7 @@ ficar visível — provavelmente vale limpar/revisar (`main.py`, `on_message`):
 
 ## Banco de dados
 
-PostgreSQL, tabela `usuarios` (criada automaticamente no boot). Um registro por
+PostgreSQL, tabela `usuarios`. Um registro por
 usuário **por servidor**:
 
 | Coluna | Descrição |
@@ -129,7 +129,15 @@ usuário **por servidor**:
 
 Lista de presença: `presenca_config` (canal/cargo por servidor), `presencas` (um registro por
 usuário/servidor/dia, `status` = `presente` | `ausente` | `pendente` | `falta`, `motivo`, mensagem da enquete) e
-`presenca_premiacoes` (meses já premiados). Todas criadas no boot.
+`presenca_premiacoes` (meses já premiados).
+
+### Migrations
+O schema fica em arquivos `.sql` numerados em [`migrations/`](migrations/), aplicados em ordem quando
+o bot liga ([`BO/migrations.py`](BO/migrations.py)). A tabela `schema_migrations` guarda quais já
+rodaram; cada uma roda uma vez, numa transação (com erro, nada dela fica no banco e o bot não sobe).
+
+Para mudar o banco, **crie um arquivo novo** (ex.: `migrations/0003_adiciona_coluna_x.sql` com um
+`ALTER TABLE`) — nunca edite uma migration que já rodou em produção.
 
 Conexão via variável de ambiente `DATABASE_URL`.
 
