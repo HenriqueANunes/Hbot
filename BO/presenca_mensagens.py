@@ -5,7 +5,7 @@ import BO.claude
 """
 Frases de zoeira geradas pelo Claude para as mensagens automáticas da lista de presença.
 
-Cada função devolve UMA frase (ou None se o Claude falhar) que vai na frente do texto
+Cada função devolve uma ou duas frases (ou None se o Claude falhar) que vai na frente do texto
 fixo montado pelo main.py. Menções, horários, placar e listas ficam sempre no texto
 fixo: o Claude só recebe o contexto e zoa, nunca é a fonte de informação.
 

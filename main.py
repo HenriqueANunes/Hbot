@@ -82,11 +82,12 @@ async def help_command(ctx):
                     value="Sem valor: mostra seus PPs. Com valor: soma aos seus PPs.", inline=False)
     embed.add_field(name="h.set_pp <qtd>", value="Define seus PPs para o valor informado.", inline=False)
     embed.add_field(name="h.presente",
-                    value="Marca presença na sessão de hoje (segunda e quinta, até as 22h).", inline=False)
+                    value=f"Marca presença na sessão de hoje (segunda e quinta, até as {BO.presenca.FECHAMENTO.strftime('%Hh')}).",
+                    inline=False)
     embed.add_field(name="h.ausente [quando] <motivo>",
                     value="Avisa que não vai. Sem `quando`, vale a próxima sessão; com antecedência: `seg`, `qui` ou "
                           "`DD/MM`. Ex.: `h.ausente 23/10 viagem`. O cargo vota numa enquete até o fechamento: "
-                          "quem não vota conta a favor; com mais da metade contra, a ausência é cancelada "
+                          "quem não vota conta a favor; com metade ou mais contra, a ausência é cancelada "
                           "(vira falta se a lista já fechou).", inline=False)
     embed.add_field(name="h.lista", value="Mostra quem já marcou presença/ausência na sessão de hoje (ou na próxima) "
                                           "e quem falta.", inline=False)
@@ -368,7 +369,7 @@ async def ausente(ctx, *, texto: str = None):
     async with ctx.channel.typing():
         frase = await BO.presenca_mensagens.frase_votacao(ctx.author.display_name, motivo)
     texto = (f'🗳️ {cargo.mention} votem até {quando} às {BO.presenca.FECHAMENTO.strftime("%Hh")}. '
-             f'Quem não votar conta a favor; só reprova com mais da metade contra.')
+             f'Quem não votar conta a favor; reprova com metade ou mais contra (empate reprova).')
     try:
         mensagem = await canal.send(com_frase(frase, texto), poll=enquete,
                                     allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=[cargo]))
@@ -431,7 +432,7 @@ async def finalizar_ausencia(pendente):
         return
     mensagem = await encerrar_enquete(guild, pendente['cd_canal_enquete'], pendente['cd_enquete'])
     contra, votaram, votantes = await contar_votos(guild, pendente, mensagem)
-    aprovada = contra * 2 <= len(votantes)  # quem não votou conta a favor; empate aprova
+    aprovada = contra * 2 < len(votantes)  # quem não votou conta a favor; empate reprova
     lista_fechada = BO.presenca.agora() >= BO.presenca.fechamento_em(pendente['data'])
     if not BO.presenca.decidir_ausencia(pendente['id'], aprovada, lista_fechada):
         return  # outro caminho já decidiu
@@ -614,7 +615,7 @@ async def premiar_mes_anterior():
 
 
 async def recuperar_presenca():
-    """Recupera o que o bot perdeu se estava fora do ar no horário (ex.: deploy às 22h).
+    """Recupera o que o bot perdeu se estava fora do ar no horário (ex.: deploy no horário do fechamento).
     Encerra votações vencidas, fecha a lista de hoje em silêncio e faz a premiação do mês anterior."""
     await verificar_enquetes()
     hoje = BO.presenca.agora().date()

@@ -72,7 +72,7 @@ Lógica e horários em [`BO/presenca.py`](BO/presenca.py) (constantes `ABERTURA`
 
 - **20h** — o bot abre a lista no canal, mencionando o cargo.
 - **21h** — lembrete mencionando só quem do cargo ainda não marcou nada.
-- **22h** — fecha: quem não marcou `h.presente` nem `h.ausente` leva **falta**; o bot posta o resumo.
+- **23h** — fecha: quem não marcou `h.presente` nem `h.ausente` leva **falta**; o bot posta o resumo.
 - **Dia 1, 00:05** — quem teve mais faltas no mês anterior ganha **uma mamada** (empate: todos).
   Ausências avisadas não contam.
 
@@ -90,8 +90,8 @@ resolveu ir, é só dar `h.presente` no dia — se a votação ainda estiver abe
 **Votação da ausência.** Cada `h.ausente` abre uma **enquete do Discord** no canal da lista
 (✅ Aprovo / ❌ Não aprovo). Enquanto isso a ausência fica "em votação" (não leva lembrete nem falta).
 - Votam os membros do cargo, **menos quem pediu**; votos de fora do cargo são ignorados na contagem.
-- **Quem não vota conta a favor**: só é reprovada se **mais da metade** dos votantes votar ❌ (empate aprova).
-- A enquete encerra quando **todos os votantes votarem** ou no **fechamento da sessão** (22h do dia) —
+- **Quem não vota conta a favor**: é reprovada se **metade ou mais** dos votantes votar ❌ (empate reprova).
+- A enquete encerra quando **todos os votantes votarem** ou no **fechamento da sessão** (23h do dia) —
   mesmo que o resultado já esteja decidido antes.
 - Aprovada → ausência. Reprovada com a lista aberta → a marcação some (ainda dá pra `h.presente`);
   reprovada depois do fechamento → **falta**.

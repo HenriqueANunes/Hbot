@@ -15,8 +15,8 @@ marcado com antecedência para qualquer sessão futura (ver ler_data()).
 
 Ausência passa por votação: o bot abre uma enquete do Discord no canal da lista e a
 ausência fica `pendente` até ela acabar — quando todos os votantes (cargo, menos quem
-pediu) votarem ou no FECHAMENTO da sessão. Quem não vota conta a favor: só é reprovada
-se mais da metade dos votantes votar contra. Reprovada com a lista ainda aberta, a
+pediu) votarem ou no FECHAMENTO da sessão. Quem não vota conta a favor: é reprovada
+se metade ou mais dos votantes votar contra (empate reprova). Reprovada com a lista ainda aberta, a
 marcação some (dá pra marcar presença); com a lista fechada, vira falta.
 
 No dia 1 de cada mês (PREMIACAO), quem teve mais faltas no mês anterior
@@ -33,7 +33,7 @@ TZ = ZoneInfo('America/Sao_Paulo')
 DIAS_SESSAO = (0, 3)  # segunda, quinta (datetime.weekday())
 ABERTURA = time(20, 0, tzinfo=TZ)
 LEMBRETE = time(21, 0, tzinfo=TZ)
-FECHAMENTO = time(22, 0, tzinfo=TZ)
+FECHAMENTO = time(23, 0, tzinfo=TZ)
 PREMIACAO = time(0, 5, tzinfo=TZ)
 
 DIAS_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']

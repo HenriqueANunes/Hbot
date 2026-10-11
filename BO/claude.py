@@ -20,7 +20,7 @@ a personalidade do Hbot (PERSONA) vem na frente das instruções de todos.
 CLAUDE_BIN = shutil.which('claude')
 MODELO = 'haiku'
 TIMEOUT = 15  # segundos (sem thinking leva ~2–5 s)
-MAX_CHARS_RESPOSTA = 300
+MAX_CHARS_RESPOSTA = 500  # o tamanho de verdade é pedido no prompt de cada uso; isto é só um teto
 
 # Personalidade comum a todas as gerações — personalizar aqui.
 PERSONA = 'Você é o Hbot, bot zoeiro de um servidor de Discord entre amigos.'
