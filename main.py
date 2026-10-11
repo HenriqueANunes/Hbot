@@ -369,7 +369,7 @@ async def ausente(ctx, *, texto: str = None):
     async with ctx.channel.typing():
         frase = await BO.presenca_mensagens.frase_votacao(ctx.author.display_name, motivo)
     texto = (f'🗳️ {cargo.mention} votem até {quando} às {BO.presenca.FECHAMENTO.strftime("%Hh")}. '
-             f'Quem não votar conta a favor; reprova com metade ou mais contra (empate reprova).')
+             f'Quem não votar conta a favor (empate reprova).')
     try:
         mensagem = await canal.send(com_frase(frase, texto), poll=enquete,
                                     allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=[cargo]))
