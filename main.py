@@ -6,7 +6,6 @@ import discord
 import os
 import asyncio
 import BO.usuario
-import BO.rpg
 import BO.mamada
 import BO.presenca
 import BO.presenca_mensagens
@@ -15,7 +14,7 @@ import BO.presenca_mensagens
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.4.0"
+HBOT_VERSION = "1.5.0"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -54,11 +53,6 @@ async def on_message(message):
     # (1 a cada 10 mensagens, por servidor; em DM, por canal) — ver BO/mamada.py
     BO.mamada.talvez_mandar(message)
 
-    response = BO.rpg.Rpg().get_dados(regex=message.content.lower())
-
-    if response:
-        await message.channel.send(response)
-
 # Lista os comandos disponíveis com uma breve explicação
 @client.command(name="help")
 async def help_command(ctx):
@@ -75,12 +69,6 @@ async def help_command(ctx):
                     value="Procura no histórico e posta as URLs dos anexos que terminam em `ext`. Ex.: `h.fbe pdf 50`.", inline=False)
     embed.add_field(name="h.mamadas", value="Mostra quantas mamadas você acumulou.", inline=False)
     embed.add_field(name="h.rank", value="Ranking de mamadas do servidor.", inline=False)
-    embed.add_field(name="h.gold [qtd]",
-                    value="Sem valor: mostra seu gold. Com valor: soma ao seu gold.", inline=False)
-    embed.add_field(name="h.set_gold <qtd>", value="Define seu gold para o valor informado.", inline=False)
-    embed.add_field(name="h.pp [qtd]",
-                    value="Sem valor: mostra seus PPs. Com valor: soma aos seus PPs.", inline=False)
-    embed.add_field(name="h.set_pp <qtd>", value="Define seus PPs para o valor informado.", inline=False)
     embed.add_field(name="h.presente",
                     value=f"Marca presença na sessão de hoje (segunda e quinta, até as {BO.presenca.FECHAMENTO.strftime('%Hh')}).",
                     inline=False)
@@ -97,8 +85,6 @@ async def help_command(ctx):
     embed.add_field(name="h.presenca_config <#canal> <@cargo>",
                     value="Define o canal dos avisos e o cargo de quem precisa marcar. Requer permissão de gerenciar o servidor.",
                     inline=False)
-    embed.add_field(name="🎲 Rolagem de dados",
-                    value="Não é comando: escreva algo como `2d6` ou `1d20+1d6` que eu rolo os dados.", inline=False)
     await ctx.channel.send(embed=embed)
 
 
@@ -166,49 +152,6 @@ async def get_rank(ctx):
                                       cd_servidor=ctx.guild.id).get_rank_mamadas()
     
     await ctx.channel.send(rank_mamadas)
-
-@client.command(name="gold")
-async def get_gold(ctx, qtd_gold:int=None):
-    if qtd_gold:
-        status, descricao, gold = BO.usuario.Usuario(user=ctx.author,
-                                                     cd_servidor=ctx.guild.id).add_gold(qtd_gold=qtd_gold)
-    else:
-        status, descricao, gold = BO.usuario.Usuario(user=ctx.author,
-                                             cd_servidor=ctx.guild.id).get_gold()
-        
-    if status:
-        await ctx.channel.send(str(gold) + ' Gold')
-    else: 
-        await ctx.channel.send(descricao)
-
-@client.command(name="set_gold")
-async def set_gold(ctx, qtd_gold:int=None):
-    status, descricao = BO.usuario.Usuario(user=ctx.author,
-                                           cd_servidor=ctx.guild.id).set_gold(qtd_gold=qtd_gold)
-
-    await ctx.channel.send(descricao)
-
-
-@client.command(name="pp")
-async def get_pp(ctx, qtd_pp:int=None):
-    if qtd_pp:
-        status, descricao, pp = BO.usuario.Usuario(user=ctx.author,
-                                                     cd_servidor=ctx.guild.id).add_pp(qtd_pp=qtd_pp)
-    else:
-        status, descricao, pp = BO.usuario.Usuario(user=ctx.author,
-                                             cd_servidor=ctx.guild.id).get_pp()
-        
-    if status:
-        await ctx.channel.send(str(pp) + ' PPs')
-    else:
-        await ctx.channel.send(descricao)
-
-@client.command(name="set_pp")
-async def set_pp(ctx, qtd_pp:int=None):
-    status, descricao = BO.usuario.Usuario(user=ctx.author,
-                                           cd_servidor=ctx.guild.id).set_pp(qtd_pp=qtd_pp)
-
-    await ctx.channel.send(descricao)
 
 # --- Lista de presença (lógica de banco e horários em BO/presenca.py) ---
 

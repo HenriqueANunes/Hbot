@@ -12,14 +12,12 @@ Estrutura do banco (PostgreSQL):
 
 - Conexão via variável de ambiente `DATABASE_URL`
   (ex.: postgresql://hbot:senha@db:5432/hbot)
-- Tabela `usuarios` (schema em migrations/0001_usuarios.sql):
+- Tabela `usuarios` (schema em migrations/0001_usuarios.sql + 0003_remove_rpg.sql):
     id           BIGSERIAL PRIMARY KEY
     cd_servidor  TEXT     -- id do servidor Discord (string)
     cd_user      TEXT     -- id do usuário Discord (string)
     nome         TEXT
     qtd_mamadas  INTEGER  -- contador de mamadas
-    gold         INTEGER  -- RPG
-    pp           INTEGER  -- RPG
     UNIQUE (cd_servidor, cd_user)
 """
 
@@ -122,75 +120,3 @@ class Usuario():
             qtd_anterior = qtd_mamadas
 
         return response
-
-    def set_gold(self, qtd_gold: int = None):
-        try:
-            if not qtd_gold:
-                return False, 'É necessário dizer a quantidade de gold'
-
-            with pool.connection() as conn:
-                conn.execute(
-                    'UPDATE usuarios SET gold = %s WHERE id = %s',
-                    (qtd_gold, self.doc_id),
-                )
-            return True, 'Feito!'
-        except Exception:
-            return False, 'Erro ao setar o gold'
-
-    def add_gold(self, qtd_gold: int = None):
-        try:
-            with pool.connection() as conn:
-                row = conn.execute(
-                    'UPDATE usuarios SET gold = gold + %s WHERE id = %s RETURNING gold',
-                    (qtd_gold, self.doc_id),
-                ).fetchone()
-            return True, '', row[0]
-        except Exception:
-            return False, 'Erro ao adicionar valor', None
-
-    def get_gold(self):
-        try:
-            with pool.connection() as conn:
-                row = conn.execute(
-                    'SELECT gold FROM usuarios WHERE id = %s',
-                    (self.doc_id,),
-                ).fetchone()
-            return True, '', row[0]
-        except Exception:
-            return False, 'Erro ao buscar gold', None
-
-    def set_pp(self, qtd_pp: int = None):
-        try:
-            if not qtd_pp:
-                return False, 'É necessário dizer a quantidade de pp'
-
-            with pool.connection() as conn:
-                conn.execute(
-                    'UPDATE usuarios SET pp = %s WHERE id = %s',
-                    (qtd_pp, self.doc_id),
-                )
-            return True, 'Feito!'
-        except Exception:
-            return False, 'Erro ao settar pp'
-
-    def add_pp(self, qtd_pp: int = None):
-        try:
-            with pool.connection() as conn:
-                row = conn.execute(
-                    'UPDATE usuarios SET pp = pp + %s WHERE id = %s RETURNING pp',
-                    (qtd_pp, self.doc_id),
-                ).fetchone()
-            return True, '', row[0]
-        except Exception:
-            return False, 'Erro ao settar pp', None
-
-    def get_pp(self):
-        try:
-            with pool.connection() as conn:
-                row = conn.execute(
-                    'SELECT pp FROM usuarios WHERE id = %s',
-                    (self.doc_id,),
-                ).fetchone()
-            return True, '', row[0]
-        except Exception:
-            return False, 'Erro ao buscar pp', None
