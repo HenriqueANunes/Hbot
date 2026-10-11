@@ -60,7 +60,8 @@ A cada mensagem, há **10% de chance** do bot responder mandando a pessoa mamar
 
 A frase é gerada na hora pelo **Claude Code** (CLI `claude -p`, modelo Haiku), reagindo
 ao que a pessoa mandou (texto, imagens/arquivos pelo tipo e nome, figurinhas, embeds de
-outros bots, e o título da prévia de links — YouTube, Steam etc.; o bot espera 3 s pela prévia) — ver [`BO/claude.py`](BO/claude.py), onde fica o prompt.
+outros bots, e o título da prévia de links — YouTube, Steam etc.; o bot espera 3 s pela prévia) — ver [`BO/mamada.py`](BO/mamada.py), onde ficam o prompt e o sorteio. A chamada ao Claude
+em si (CLI, timeout, fila, personalidade comum do Hbot) é genérica, em [`BO/claude.py`](BO/claude.py).
 Leva ~3–5 s (o bot mostra "digitando…"). Sem token, com erro ou após 15 s, cai na
 frase fixa `Da uma mamadinha aqui <nome>`. Só uma geração por vez; se já tiver uma
 rodando, usa a frase fixa.

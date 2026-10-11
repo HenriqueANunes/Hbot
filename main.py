@@ -5,10 +5,9 @@ import math
 import discord
 import os
 import asyncio
-import random
 import BO.usuario
 import BO.rpg
-import BO.claude
+import BO.mamada
 import BO.presenca
 # import aiocron
 
@@ -26,24 +25,6 @@ client = discord.Client(intents=intents)
 client = commands.Bot(command_prefix="h.", intents=intents, help_command=None)
 
 blackList = ['jpeg', 'jpg', 'png', 'gif']
-
-# Referências às tasks de mamada em andamento (evita que o asyncio as colete antes de terminar)
-tarefas_mamada = set()
-
-# "Sacola" de mamadas por servidor: 10 fichas embaralhadas, só uma premiada.
-# Garante exatamente 1 mamada a cada 10 mensagens, sem sequências longas sem nada.
-TAMANHO_SACOLA = 10
-sacolas_mamada = {}
-
-
-def sortear_mamada(chave):
-    sacola = sacolas_mamada.get(chave)
-    if not sacola:
-        sacola = [True] + [False] * (TAMANHO_SACOLA - 1)
-        random.shuffle(sacola)
-        sacolas_mamada[chave] = sacola
-    return sacola.pop()
-
 
 @client.event
 async def on_ready():
@@ -69,28 +50,13 @@ async def on_message(message):
 
 
     # Quando um usuario envia uma mensagem no chat, há uma chance de o bot mandar ele mamar
-    # (1 a cada 10 mensagens, por servidor; em DM, por canal)
-    chave = message.guild.id if message.guild else message.channel.id
-    if sortear_mamada(chave):
-        # Em task separada: a geração pelo Claude leva alguns segundos
-        tarefa = asyncio.create_task(mandar_mamada(message))
-        tarefas_mamada.add(tarefa)
-        tarefa.add_done_callback(tarefas_mamada.discard)
-
+    # (1 a cada 10 mensagens, por servidor; em DM, por canal) — ver BO/mamada.py
+    BO.mamada.talvez_mandar(message)
 
     response = BO.rpg.Rpg().get_dados(regex=message.content.lower())
 
     if response:
         await message.channel.send(response)
-
-# Manda a mamadinha gerada pelo Claude; sem Claude (erro, timeout, sem token), usa a frase fixa
-async def mandar_mamada(message):
-    async with message.channel.typing():
-        texto = await BO.claude.gerar_mamada(message)
-    if not texto:
-        texto = f'Da uma mamadinha aqui {message.author.display_name}'
-    await message.channel.send(texto, tts=True, allowed_mentions=discord.AllowedMentions.none())
-    BO.usuario.Usuario(user=message.author, cd_servidor=message.guild.id).add_mamada()
 
 # Lista os comandos disponíveis com uma breve explicação
 @client.command(name="help")
