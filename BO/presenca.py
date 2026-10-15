@@ -10,7 +10,7 @@ Fluxo de um dia de sessão (horários abaixo, fuso de São Paulo):
 - ABERTURA:   o bot avisa no canal configurado, mencionando o cargo.
 - LEMBRETE:   menciona quem do cargo ainda não marcou nada.
 - FECHAMENTO: quem do cargo não marcou presença nem ausência leva uma falta.
-`/presente` vale o dia todo da sessão, até o FECHAMENTO. `/ausente` também pode ser
+`/presente` só vale entre a ABERTURA e o FECHAMENTO. `/ausente` também pode ser
 marcado com antecedência para qualquer sessão futura (ver ler_data()).
 
 Ausência passa por votação: o bot abre uma enquete do Discord no canal da lista e a
@@ -54,6 +54,11 @@ def lista_aberta() -> bool:
     """Hoje é dia de sessão e ainda não passou do fechamento."""
     momento = agora()
     return eh_dia_de_sessao(momento.date()) and momento.time() < FECHAMENTO.replace(tzinfo=None)
+
+
+def presenca_liberada() -> bool:
+    """Lista aberta e já passou da abertura: horário em que dá pra marcar /presente."""
+    return lista_aberta() and agora().time() >= ABERTURA.replace(tzinfo=None)
 
 
 def fechamento_em(dia: date) -> datetime:

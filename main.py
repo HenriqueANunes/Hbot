@@ -13,7 +13,7 @@ import BO.presenca_mensagens
 # logging.basicConfig(level=logging.INFO)
 
 # Versão do Hbot — aumente a cada alteração no código
-HBOT_VERSION = "1.6.0"
+HBOT_VERSION = "1.6.1"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -90,7 +90,8 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(name="/mamadas", value="Mostra quantas mamadas você acumulou.", inline=False)
     embed.add_field(name="/rank", value="Ranking de mamadas do servidor.", inline=False)
     embed.add_field(name="/presente",
-                    value=f"Marca presença na sessão de hoje (segunda e quinta, até as {BO.presenca.FECHAMENTO.strftime('%Hh')}).",
+                    value=f"Marca presença na sessão de hoje (segunda e quinta, das {BO.presenca.ABERTURA.strftime('%Hh')} "
+                          f"às {BO.presenca.FECHAMENTO.strftime('%Hh')}).",
                     inline=False)
     embed.add_field(name="/ausente motivo [quando]",
                     value="Avisa que não vai. Sem `quando`, vale a próxima sessão; com antecedência: `seg`, `qui` ou "
@@ -274,6 +275,10 @@ async def presente(interaction: discord.Interaction):
             texto = f'Hoje não tem sessão. Próxima: {proxima.strftime("%d/%m")}.'
         await interaction.response.send_message(texto, ephemeral=True)
         return
+    if not BO.presenca.presenca_liberada():
+        await interaction.response.send_message(
+            f'A lista de hoje só abre às {BO.presenca.ABERTURA.strftime("%Hh")}.', ephemeral=True)
+        return
     hoje = BO.presenca.agora().date()
     anterior = BO.presenca.get_marcacao(interaction.guild_id, interaction.user.id, hoje)
     BO.presenca.marcar(interaction.guild_id, interaction.user, hoje, 'presente')
@@ -429,7 +434,8 @@ async def finalizar_ausencia(pendente):
         texto = f'❌ Ausência de <@{pendente["cd_user"]}> em {quando} **reprovada** ({placar}). Ficou com falta.'
     else:
         texto = (f'❌ Ausência de <@{pendente["cd_user"]}> em {quando} **reprovada** ({placar}). '
-                 f'Marque `/presente` até as {BO.presenca.FECHAMENTO.strftime("%Hh")} do dia, senão é falta.')
+                 f'Marque `/presente` entre {BO.presenca.ABERTURA.strftime("%Hh")} e {BO.presenca.FECHAMENTO.strftime("%Hh")} '
+                 f'do dia, senão é falta.')
     canal = (mensagem and mensagem.channel) or guild.get_channel(pendente['cd_canal_enquete'])
     if canal:
         membro = guild.get_member(pendente['cd_user'])

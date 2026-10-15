@@ -23,7 +23,7 @@ erro (lista fechada, data inválida, fora do cargo…) aparecem só para quem ch
 | `/fbe` | `extensao` `[profundidade=100]` | Varre o histórico do canal (até `profundidade` mensagens, máx. 1000) e posta as URLs dos anexos cujo nome termina em `extensao`. Ex.: `/fbe extensao:pdf`. |
 | `/mamadas` | — | Mostra quantas "mamadas" **você** acumulou (contador de brincadeira, ver abaixo). |
 | `/rank` | — | Ranking de mamadas do servidor. |
-| `/presente` | — | Marca presença na sessão de hoje (segunda/quinta, até o fechamento). Só para quem tem o cargo da lista. |
+| `/presente` | — | Marca presença na sessão de hoje (segunda/quinta, só entre a abertura e o fechamento: 20h–23h). Só para quem tem o cargo da lista. |
 | `/ausente` | `motivo` `[quando]` | Avisa que não vai. Sem `quando`, vale a próxima sessão (hoje, se a lista ainda está aberta). Com antecedência (até 32 dias): `quando` sugere as próximas sessões, ou aceita `seg`, `qui`, `DD/MM[/AAAA]`. Abre uma votação (ver abaixo). |
 | `/lista` | — | Quem marcou presença/ausência na sessão de hoje (fora de dia de sessão, na próxima) e quem ainda não marcou (ou faltou, depois do fechamento). |
 | `/faltas` | `[mes]` (`MM/AAAA`) | Faltas e ausências do mês (padrão: mês atual). |
@@ -68,9 +68,9 @@ A piada da mamada só entra no rei das faltas. Menções, horários, placar e li
 logo abaixo (o Claude nunca é a fonte da informação); sem Claude, sai só o texto fixo. As mensagens só
 notificam quem o código menciona (`allowed_mentions`), então um `@everyone` gerado não pinga ninguém.
 
-`/presente` vale o dia todo da sessão até o fechamento; `/ausente` também pode ser marcado
+`/presente` só vale entre a abertura e o fechamento (20h–23h) do dia da sessão; `/ausente` também pode ser marcado
 com antecedência para qualquer sessão futura. Um sobrescreve o outro (quem avisou ausência e
-resolveu ir, é só dar `/presente` no dia — se a votação ainda estiver aberta, ela é cancelada).
+resolveu ir, é só dar `/presente` depois que a lista abrir — se a votação ainda estiver aberta, ela é cancelada).
 
 **Votação da ausência.** Cada `/ausente` abre uma **enquete do Discord** no canal da lista
 (✅ Aprovo / ❌ Não aprovo). Enquanto isso a ausência fica "em votação" (não leva lembrete nem falta).
